@@ -1,0 +1,46 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url = "https://s3.ap-south-1.amazonaws.com/hvsdk/android/releases"
+        }
+        maven { url 'https://jitpack.io' }
+        configurations.all {
+            resolutionStrategy {
+                force "com.google.android.gms:play-services-location:21.0.1"
+            }
+        }
+    }
+}
+
+// Force all subprojects to use jvmTarget 11 to avoid "Unknown Kotlin JVM target: 21" with Kotlin 1.9.x
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            try {
+                project.android.compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_11
+                    targetCompatibility JavaVersion.VERSION_11
+                }
+                if (project.android.hasProperty('kotlinOptions')) {
+                    project.android.kotlinOptions {
+                        jvmTarget = '11'
+                    }
+                }
+            } catch (ignored) {}
+        }
+    }
+}
+
+rootProject.buildDir = '../build'
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(':app')
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
