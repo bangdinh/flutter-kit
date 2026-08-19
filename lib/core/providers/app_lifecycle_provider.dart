@@ -17,18 +17,28 @@ part 'app_lifecycle_provider.g.dart';
 ///   });
 ///   ```
 @Riverpod(keepAlive: true)
-class AppLifecycle extends _$AppLifecycle with WidgetsBindingObserver {
+class AppLifecycle extends _$AppLifecycle {
   @override
   AppLifecycleState build() {
+    final observer = _AppLifecycleObserver(
+      onChanged: (appState) => state = appState,
+    );
     final binding = WidgetsBinding.instance;
-    binding.addObserver(this);
-    ref.onDispose(() => binding.removeObserver(this));
+    binding.addObserver(observer);
+    ref.onDispose(() => binding.removeObserver(observer));
     return AppLifecycleState.resumed;
   }
+}
+
+/// Separate observer class since Riverpod 3.x notifiers
+/// cannot use `with WidgetsBindingObserver`.
+class _AppLifecycleObserver extends WidgetsBindingObserver {
+  _AppLifecycleObserver({required this.onChanged});
+
+  final ValueChanged<AppLifecycleState> onChanged;
 
   @override
-  // ignore: avoid_renaming_method_parameters
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    this.state = state;
+    onChanged(state);
   }
 }

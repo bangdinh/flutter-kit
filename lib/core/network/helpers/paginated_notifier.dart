@@ -1,11 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../shared/models/paginated_state.dart';
 import '../models/api_response.dart';
 
-/// Base class for paginated list providers.
+/// Base mixin for paginated list providers.
 ///
 /// Subclass this in your feature's provider to get pagination for free.
 ///
@@ -31,7 +29,12 @@ import '../models/api_response.dart';
 ///     }
 ///   }
 ///   ```
-mixin PaginatedNotifier<T> on AutoDisposeNotifier<PaginatedState<T>> {
+mixin PaginatedNotifier<T> {
+  /// Riverpod 3.x: state is provided by the generated `_$ClassName`
+  /// base class. The mixin accesses it through these abstract members.
+  PaginatedState<T> get state;
+  set state(PaginatedState<T> value);
+
   int get pageSize => 20;
 
   /// Implement this to fetch a page from your data source.

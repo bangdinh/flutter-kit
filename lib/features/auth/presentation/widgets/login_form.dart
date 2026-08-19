@@ -32,7 +32,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
   Future<void> _onSubmit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    await ref.read(authStateNotifierProvider.notifier).login(
+    await ref.read(authStateProvider.notifier).login(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
@@ -41,11 +41,11 @@ class _LoginFormState extends ConsumerState<LoginForm> {
   @override
   Widget build(BuildContext context) {
     // Andrea's tip #46: ref.watch rebuilds widget on state changes
-    final authState = ref.watch(authStateNotifierProvider);
+    final authState = ref.watch(authStateProvider);
     final isLoading = authState.isLoading;
 
     // Andrea's tip #59: Listen for side effects (errors, navigation)
-    ref.listen(authStateNotifierProvider, (prev, next) {
+    ref.listen(authStateProvider, (prev, next) {
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

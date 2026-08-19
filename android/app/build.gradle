@@ -2,24 +2,20 @@ plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    // START: FlutterFire Configuration
-    id 'com.google.gms.google-services'
-    id 'com.google.firebase.crashlytics'
-    // END: FlutterFire Configuration
 }
 
 android {
-    namespace "com.act.mobile.apps"
+    namespace "com.example.flutter_kit"
     compileSdkVersion 36
     ndkVersion flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = '11'
+        jvmTarget = '17'
     }
 
     sourceSets {
@@ -27,7 +23,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.act.mobile.apps"
+        applicationId "com.example.flutter_kit"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion 34
         versionCode flutter.versionCode
@@ -46,5 +42,4 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10"
 }

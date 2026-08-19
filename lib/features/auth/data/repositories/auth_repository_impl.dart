@@ -12,7 +12,7 @@ part 'auth_repository_impl.g.dart';
 /// Andrea's tip #41: Using fake repositories for testing
 /// — override this provider with a FakeAuthRepository in tests.
 @riverpod
-AuthRepository authRepository(AuthRepositoryRef ref) {
+AuthRepository authRepository(Ref ref) {
   return AuthRepositoryImpl(
     remoteDataSource: ref.watch(authRemoteDataSourceProvider),
     secureStorage: ref.watch(secureStorageProvider),

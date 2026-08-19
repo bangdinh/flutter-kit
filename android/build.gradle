@@ -9,6 +9,9 @@ allprojects {
         configurations.all {
             resolutionStrategy {
                 force "com.google.android.gms:play-services-location:21.0.1"
+                force "androidx.core:core:1.13.1"
+                force "androidx.core:core-ktx:1.13.1"
+                force "androidx.browser:browser:1.8.0"
             }
         }
     }
@@ -20,12 +23,12 @@ subprojects {
         if (project.hasProperty('android')) {
             try {
                 project.android.compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_11
-                    targetCompatibility JavaVersion.VERSION_11
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
                 }
                 if (project.android.hasProperty('kotlinOptions')) {
                     project.android.kotlinOptions {
-                        jvmTarget = '11'
+                        jvmTarget = '17'
                     }
                 }
             } catch (ignored) {}

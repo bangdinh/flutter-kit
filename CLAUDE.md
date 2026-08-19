@@ -1,7 +1,7 @@
 # Flutter Kit — Claude Code Instructions
 
 ## Project overview
-A reusable Flutter template using **Feature-first Clean Architecture** + **Riverpod**.
+A reusable Flutter template using **Feature-first Clean Architecture** + **Riverpod 3.x**.
 
 ## Architecture rules
 
@@ -31,12 +31,16 @@ features/<name>/
 
 Create new features with: `make feature NAME=<name>`
 
-### State management — Riverpod
+### State management — Riverpod 3.x
 - Use `@riverpod` annotation + code generation (NOT hand-written providers)
+- Functional providers use `Ref` (NOT specific `XxxRef` types — those were Riverpod 2.x)
+- Generated provider names drop "Notifier": class `AuthStateNotifier` → `authStateProvider`
 - Use `ref.watch()` in widgets for reactive rebuilds
 - Use `ref.read()` for one-shot actions (button taps)
-- Use `ref.listen()` for side effects (snackbars, navigation)
+- Use `ref.listen()` for side effects — `prev` parameter is nullable
 - Use `AsyncValue.guard()` for async operations in notifiers
+- `AsyncValue.value` is nullable (replaces old `valueOrNull`)
+- All notifiers auto-dispose by default; use `@Riverpod(keepAlive: true)` to persist
 - Riverpod IS the DI container — do NOT add get_it or injectable
 
 ### Models
@@ -54,6 +58,7 @@ Create new features with: `make feature NAME=<name>`
 - Files: `snake_case.dart`
 - Classes: `PascalCase`
 - Providers: `@riverpod` generates `<className>Provider` automatically
+- Notifier classes: generated name drops "Notifier" suffix
 - Repositories: abstract in `domain/`, impl suffixed `_impl` in `data/`
 - Data sources: suffixed `_remote_data_source` or `_local_data_source`
 
@@ -67,6 +72,8 @@ make analyze      # flutter analyze
 make test         # flutter test
 make format       # dart format
 make feature NAME=profile   # scaffold new feature
+make rename NAME=my_app     # fork kit with new name
+make ci           # run full CI locally
 ```
 
 ## Key files
@@ -90,6 +97,8 @@ make feature NAME=profile   # scaffold new feature
 
 ## Do NOT
 - Add `get_it` or `injectable` — Riverpod handles DI
+- Use `XxxRef` types in functional providers — use `Ref` (Riverpod 3.x)
+- Use `valueOrNull` on AsyncValue — use `value` (nullable in Riverpod 3.x)
 - Import Flutter in domain layer entities
 - Put business logic in widgets — use providers
 - Create barrel exports per feature — only `core/core.dart` and `shared/shared.dart`

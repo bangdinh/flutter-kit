@@ -11,7 +11,7 @@ part 'auth_remote_data_source.g.dart';
 /// This layer knows about URLs and JSON — nothing else.
 /// The repository composes this with storage and error handling.
 @riverpod
-AuthRemoteDataSource authRemoteDataSource(AuthRemoteDataSourceRef ref) {
+AuthRemoteDataSource authRemoteDataSource(Ref ref) {
   return AuthRemoteDataSource(dio: ref.watch(apiClientProvider));
 }
 

@@ -27,11 +27,11 @@ void main() {
     test('initial state — no current user → not logged in', () async {
       // Wait for the async build to complete
       final sub = container.listen(
-        authStateNotifierProvider,
+        authStateProvider,
         (_, __) {},
       );
       // Allow the Future to resolve
-      await container.read(authStateNotifierProvider.future);
+      await container.read(authStateProvider.future);
 
       final state = sub.read();
       expect(state.value?.isLoggedIn, isFalse);
@@ -40,15 +40,15 @@ void main() {
 
     test('login success → logged in with user', () async {
       // Wait for initial build
-      await container.read(authStateNotifierProvider.future);
+      await container.read(authStateProvider.future);
 
       // Act
       await container
-          .read(authStateNotifierProvider.notifier)
+          .read(authStateProvider.notifier)
           .login(email: 'test@example.com', password: '123456');
 
       // Assert
-      final state = await container.read(authStateNotifierProvider.future);
+      final state = await container.read(authStateProvider.future);
       expect(state.isLoggedIn, isTrue);
       expect(state.user?.email, 'test@example.com');
       expect(fakeRepo.loginCallCount, 1);
@@ -56,33 +56,33 @@ void main() {
 
     test('login failure → error state', () async {
       // Wait for initial build to succeed first
-      await container.read(authStateNotifierProvider.future);
+      await container.read(authStateProvider.future);
 
       // Now make subsequent calls throw
       fakeRepo.shouldThrow = true;
 
       // Act
       await container
-          .read(authStateNotifierProvider.notifier)
+          .read(authStateProvider.notifier)
           .login(email: 'test@example.com', password: 'wrong');
 
       // Assert
-      final state = container.read(authStateNotifierProvider);
+      final state = container.read(authStateProvider);
       expect(state.hasError, isTrue);
     });
 
     test('logout → not logged in', () async {
       // Setup: login first
-      await container.read(authStateNotifierProvider.future);
+      await container.read(authStateProvider.future);
       await container
-          .read(authStateNotifierProvider.notifier)
+          .read(authStateProvider.notifier)
           .login(email: 'test@example.com', password: '123456');
 
       // Act
-      await container.read(authStateNotifierProvider.notifier).logout();
+      await container.read(authStateProvider.notifier).logout();
 
       // Assert
-      final state = await container.read(authStateNotifierProvider.future);
+      final state = await container.read(authStateProvider.future);
       expect(state.isLoggedIn, isFalse);
       expect(state.user, isNull);
       expect(fakeRepo.logoutCallCount, 1);

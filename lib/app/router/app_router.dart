@@ -13,14 +13,14 @@ part 'app_router.g.dart';
 /// Follows Andrea's tip #36: GoRouter go vs push
 /// — use go() for top-level navigation, push() for sub-pages.
 @riverpod
-GoRouter appRouter(AppRouterRef ref) {
-  final authState = ref.watch(authStateNotifierProvider);
+GoRouter appRouter(Ref ref) {
+  final authState = ref.watch(authStateProvider);
 
   return GoRouter(
     initialLocation: RoutePaths.login,
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      final isLoggedIn = authState.valueOrNull?.isLoggedIn ?? false;
+      final isLoggedIn = authState.value?.isLoggedIn ?? false;
       final isLoginRoute = state.matchedLocation == RoutePaths.login;
 
       // Not logged in → redirect to login

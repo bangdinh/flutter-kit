@@ -7,7 +7,7 @@ part 'secure_storage.g.dart';
 ///
 /// Riverpod replaces get_it here — this provider is the DI container.
 @Riverpod(keepAlive: true)
-SecureStorage secureStorage(SecureStorageRef ref) {
+SecureStorage secureStorage(Ref ref) {
   return SecureStorage();
 }
 

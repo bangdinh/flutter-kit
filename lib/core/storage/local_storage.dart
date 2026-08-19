@@ -8,7 +8,7 @@ part 'local_storage.g.dart';
 /// Andrea's tip #56: Async init with provider overrides
 /// — initialized in bootstrap, overridden in ProviderScope.
 @Riverpod(keepAlive: true)
-SharedPreferences localStorage(LocalStorageRef ref) {
+SharedPreferences localStorage(Ref ref) {
   // This will be overridden in bootstrap.dart with the real instance.
   throw UnimplementedError(
     'localStorage must be overridden with a pre-initialized SharedPreferences. '

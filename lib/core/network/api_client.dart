@@ -19,7 +19,7 @@ part 'api_client.g.dart';
 ///   3. ErrorInterceptor — maps Dio errors to ApiException
 ///   4. PrettyDioLogger — logs requests (debug only)
 @riverpod
-Dio apiClient(ApiClientRef ref) {
+Dio apiClient(Ref ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: EnvConfig.current.apiBaseUrl,
