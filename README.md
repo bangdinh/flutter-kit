@@ -152,11 +152,24 @@ switch (result) {
 }
 ```
 
+## Environment Variables
+
+This project uses the [`envied`](https://pub.dev/packages/envied) package to securely manage environment variables and obfuscate them in the compiled code.
+
+To setup environments:
+1. Create `.env.dev`, `.env.staging`, and `.env.prod` files in the project root:
+```properties
+API_BASE_URL=https://api.dev.example.com
+```
+2. Run code generation: `make gen`
+
+This generates the `Env` classes inside `lib/app/env/env.dart` which are then consumed by `app_env.dart`.
+
 ## Rebranding
 
 To use this kit for a new project:
 
 1. Change `name` in `pubspec.yaml`
 2. Update colors in `app/theme/app_colors.dart`
-3. Update API base URLs in `app/env/app_env.dart`
+3. Update `.env.dev`, `.env.staging`, `.env.prod` and run `make gen`
 4. Replace the sample `auth` feature or use it as-is

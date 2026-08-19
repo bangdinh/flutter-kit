@@ -1,27 +1,35 @@
+import 'env.dart';
+
 /// Environment configuration for the app.
 ///
 /// Follows Andrea's tip #37: Rules for good app architecture
 /// — externalize config so the same code runs against different backends.
 enum AppEnv {
   dev(
-    apiBaseUrl: 'https://api.dev.example.com',
     label: 'DEV',
   ),
   staging(
-    apiBaseUrl: 'https://api.staging.example.com',
     label: 'STG',
   ),
   prod(
-    apiBaseUrl: 'https://api.example.com',
     label: 'PROD',
   );
 
   const AppEnv({
-    required this.apiBaseUrl,
     required this.label,
   });
 
-  final String apiBaseUrl;
+  String get apiBaseUrl {
+    switch (this) {
+      case AppEnv.dev:
+        return EnvDev.apiBaseUrl;
+      case AppEnv.staging:
+        return EnvStaging.apiBaseUrl;
+      case AppEnv.prod:
+        return EnvProd.apiBaseUrl;
+    }
+  }
+
   final String label;
 
   bool get isDev => this == AppEnv.dev;
