@@ -24,6 +24,32 @@ Need more than the tokens allow? `KitTheme.light(brand).copyWith(chipTheme: ...)
 `kit_theme.dart` into an app is how two apps silently drift apart — and how a kit fix stops
 reaching either.
 
+## Edge-to-edge system bars
+
+`KitApp` opts into `SystemUiMode.edgeToEdge` and annotates every frame with
+`kitSystemUiOverlayStyle(Theme.of(context).brightness)`: transparent status and navigation bars,
+with icon brightness inverted against the resolved theme. Switching light↔dark keeps the icons
+legible without any app code.
+
+Why the kit opts in rather than leaving it: Android **enforces** edge-to-edge from API 35
+(`targetSdk` 35+) whether an app asks or not. Opting in explicitly means the layout is the same on
+older versions too, instead of shifting the first time a user's device updates.
+
+The kit manages the *bars*, not your layout — a page whose content must not sit under them still
+needs `SafeArea` (`Scaffold` already insets its `body`; a `Stack` or a custom scroll view does not).
+This is the one thing to check on API 35+ hardware, because a widget test won't catch it.
+
+Annotating one screen differently (a dark media player in a light app):
+
+```dart
+AnnotatedRegion<SystemUiOverlayStyle>(
+  value: kitSystemUiOverlayStyle(Brightness.dark),
+  child: player,
+);
+```
+
+An app that drives `SystemChrome` itself: `KitApp(edgeToEdge: false, ...)`.
+
 ## Spacing
 
 `AppSizes` — `s4…s64` values, `gap4…gap64` const `SizedBox`es, `radius*`/`borderRadius*`,

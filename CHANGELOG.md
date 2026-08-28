@@ -16,7 +16,9 @@ PATCH = compatible fix).
   its own `RouterConfig` instead.
 - `AppTheme.light`/`.dark` (static getters over a fixed `AppColors`) → `KitTheme.light(colors)` /
   `KitTheme.dark(colors)` taking `KitColors` tokens. `AppColors` is gone.
-- `bootstrap()` → `bootstrapKit(config:, appBuilder:, overrides:, onInit:, onError:)`.
+- `bootstrap()` → `bootstrapKit(config:, appBuilder:, overrides:, onInit:, onError:)`. Its
+  `systemUiOverlayStyle` is now nullable and unset by default — `KitApp` applies a theme-aware style
+  per frame, which a value fixed at boot would fight with.
 - `AuthInterceptor` now depends on `TokenStore` instead of `SecureStorage`, and takes explicit
   `refreshToken` / `onUnauthorized` hooks instead of a `TODO`.
 
@@ -24,7 +26,12 @@ PATCH = compatible fix).
 
 - `KitConfig` + `kitConfigProvider`: base URL, timeouts, retry policy, default headers, logging
   switch — supplied by the app, never read from `.env` by the kit.
-- `KitApp`: `MaterialApp.router` shell wired to the persisted `themeModeProvider`.
+- `KitApp`: `MaterialApp.router` shell wired to the persisted `themeModeProvider`. Opts into
+  `SystemUiMode.edgeToEdge` (enforced by Android from API 35) and annotates each frame with
+  `kitSystemUiOverlayStyle(brightness)` — transparent bars, icon brightness following the resolved
+  theme. Opt out with `KitApp(edgeToEdge: false)`.
+- `kitSystemUiOverlayStyle(Brightness)` — the kit's bar style, exported so a screen can annotate
+  itself differently from the app's theme.
 - `TokenStore` contract with a `SecureTokenStore` default, plus `tokenRefresherProvider` and
   `unauthorizedHandlerProvider` for the app's auth policy; `Options(extra: {'skip_auth': true})`
   skips token attachment per request.

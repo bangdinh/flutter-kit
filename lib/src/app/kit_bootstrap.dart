@@ -35,10 +35,11 @@ Future<void> bootstrapKit({
   /// Hive.init, license registration.
   FutureOr<void> Function()? onInit,
   List<DeviceOrientation> orientations = const [DeviceOrientation.portraitUp],
-  SystemUiOverlayStyle systemUiOverlayStyle = const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-  ),
+
+  /// Usually leave this unset: [KitApp] applies a theme-aware, edge-to-edge
+  /// style per frame (see `kitSystemUiOverlayStyle`), which a value fixed at
+  /// boot would only fight with. Set it for an app that doesn't use [KitApp].
+  SystemUiOverlayStyle? systemUiOverlayStyle,
 
   /// Called for every uncaught framework error. Defaults to logging it.
   void Function(Object error, StackTrace stackTrace)? onError,
@@ -59,7 +60,9 @@ Future<void> bootstrapKit({
 
   AppLogger.i('Starting app — ${config.envLabel} (${config.apiBaseUrl})');
 
-  SystemChrome.setSystemUIOverlayStyle(systemUiOverlayStyle);
+  if (systemUiOverlayStyle != null) {
+    SystemChrome.setSystemUIOverlayStyle(systemUiOverlayStyle);
+  }
   if (orientations.isNotEmpty) {
     await SystemChrome.setPreferredOrientations(orientations);
   }

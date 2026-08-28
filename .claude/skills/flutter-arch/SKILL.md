@@ -77,6 +77,10 @@ features/<name>/
   Never fork `kit_theme.dart` into an app.
 - Reuse `AppButton`, `AppTextField`, `AppCachedImage`, `AsyncValueWidget`, `PaginatedListView`
   before writing a new widget. Business logic lives in providers, not widgets.
+- `KitApp` runs edge-to-edge and owns the system-bar style (`kitSystemUiOverlayStyle`) — never call
+  `SystemChrome.setSystemUIOverlayStyle` in a page. But the kit does not inset your layout: any
+  full-bleed page (`Stack`, custom scroll view) needs `SafeArea`, or content hides under the bars on
+  API 35+.
 
 ## Verify — exact commands
 
