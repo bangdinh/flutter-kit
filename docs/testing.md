@@ -47,5 +47,8 @@ dart analyze lib test && flutter test              # the kit
 make ci                                            # both, exactly what CI runs
 ```
 
+Generated code is committed, so `build_runner` should be a no-op on a clean checkout; if it writes
+something, the annotation change behind it was never committed.
+
 `flutter analyze` crashes on some machines (Homebrew dart on PATH ahead of the SDK's) — the kit
 standardises on `dart analyze`, in the Makefile and in CI.

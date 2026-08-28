@@ -46,6 +46,10 @@ chính xác (tên nhánh, full commit message, lệnh push/tag) rồi để user
 
 ## Khi chuẩn bị PR
 
+CI **chỉ chạy khi có PR vào `master`** (hoặc user tự bấm Actions → CI → *Run workflow*), cố ý vậy
+để commit hằng ngày trên feature branch không spam pipeline. Nghĩa là trên nhánh, `make ci` ở local
+LÀ pipeline — chạy nó trước khi mở PR, đừng đẩy lên rồi chờ CI báo.
+
 Checklist trước khi mở PR — chạy cả **gốc** và **example/** (hai package riêng):
 
 ```bash
@@ -53,8 +57,10 @@ dart run build_runner build && dart analyze lib test && flutter test
 (cd example && dart run build_runner build && dart analyze lib test && flutter test)
 ```
 
-Thêm: no secret/debug log · đổi public API của kit → cập nhật `docs/` + mục `## [Unreleased]`
-trong `CHANGELOG.md` · quyết định khó đảo → thêm ADR ở `docs/adr/`.
+Thêm: no secret/debug log · **generated code (`.g.dart`, `.freezed.dart`) đã chạy `make gen` /
+`make gen-example` và commit kèm** (trừ `env.g.dart` — không bao giờ commit) · đổi public API của
+kit → cập nhật `docs/` + mục `## [Unreleased]` trong `CHANGELOG.md` · quyết định khó đảo → thêm ADR
+ở `docs/adr/`.
 
 ## Tag release (chỉ trên `master`)
 

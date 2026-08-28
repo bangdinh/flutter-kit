@@ -28,6 +28,11 @@ branch `master` + a clean tree, and puts the release notes inside the annotated 
 **Never re-tag a pushed version** — it poisons the `pub` cache of every app that already resolved
 it, in a way that looks like a random build failure. Ship a new patch instead.
 
+Generated code is committed and must be regenerated before tagging: a consumer resolving the tag
+from git gets exactly what's in the tree, and `build_runner` never runs on a dependency. A tag with
+stale `.g.dart` is a broken tag you cannot fix in place — CI's staleness check is what keeps that
+from happening.
+
 ## Consuming (apps)
 
 ```yaml

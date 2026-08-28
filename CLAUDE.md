@@ -52,7 +52,13 @@ make ci                                                                        #
 - **Use `dart analyze`, not `flutter analyze`** — `flutter analyze` crashes on this machine
   (analysis server exits 64, Homebrew dart conflict). CI uses `dart analyze` for the same reason.
 - Chain edit → gen → analyze → test with `&&`. Regenerate after touching `@riverpod`, `@freezed`,
-  `@Envied`; generated files are gitignored, so a stale `.g.dart` looks like a phantom error.
+  `@Envied`.
+- **Generated code is committed in both packages** — an app consuming the kit by tag cannot generate
+  code for a dependency (`build_runner` only runs on the current package), and having the output in
+  git makes a bad build traceable to a diff instead of to someone's local generator state. Run
+  `make gen` / `make gen-example` and commit the result; CI fails on a stale one. The single
+  exception is `env.g.dart`: envied embeds the `.env` values into it, and obfuscation is not
+  encryption — it stays untracked, like `.env*`.
 - The kit and `example/` are **separate packages** — `pub get`/codegen/analyze/test each. `build.yaml`
   deliberately excludes `example/**` from the kit's build_runner (otherwise codegen fails on the
   app's own dependencies, e.g. go_router).
@@ -87,6 +93,11 @@ Flutter `3.41.x` · Dart SDK `^3.7.0` · Riverpod `3.x`.
 ## Repo gotchas (these cause loops if unknown)
 
 - Default branch is **`master`** (not `main`) — remote `git@github.com:bangdinh/flutter-kit.git`.
+- **CI runs on PRs into `master` and on manual dispatch only** — not on push. A green local `make ci`
+  is the feedback loop while working; to get a run on a branch before the PR, trigger the workflow
+  manually (Actions → CI → Run workflow).
+- `example/pubspec.lock` **is** committed (it's an app, and it keeps codegen output reproducible);
+  the kit's own lock stays ignored (it's a library).
 - `Override` and `ProviderException` are **not** exported by `flutter_riverpod.dart` — import
   `package:flutter_riverpod/misc.dart show Override, ProviderException`.
 - Current `build_runner` rejects `--delete-conflicting-outputs` (removed flag). Just

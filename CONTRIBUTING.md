@@ -62,6 +62,9 @@ Claude Code (and any agent) **proposes** git commands; a human runs `commit`, `p
 
 ## PR checklist
 
+CI only runs on PRs into `master` (and on a manual Actions → CI → *Run workflow*), so on a feature
+branch **`make ci` is your pipeline**:
+
 ```bash
 make ci   # kit + example: codegen, dart analyze, tests
 ```
@@ -71,6 +74,9 @@ Plus:
 - [ ] Public API change → `docs/` updated and `CHANGELOG.md` `## [Unreleased]` entry added
 - [ ] Hard-to-reverse decision → ADR under `docs/adr/`
 - [ ] No secret, no leftover debug logging, no `TODO` without an owner
+- [ ] `make gen` (+ `make gen-example` if the app changed) run and the generated files **committed** —
+      generated code lives in git in both packages; CI fails on a stale commit. Never commit
+      `env.g.dart`
 - [ ] No `dependency_overrides` or `path:` kit dependency committed outside `example/`
 - [ ] Behaviour change in the kit → `example/` still analyzes and passes tests (CI enforces this,
       because it's the only consumer we can see)
