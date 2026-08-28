@@ -1,0 +1,2 @@
+# Apps inherit the kit preset instead of copying lint rules.
+include: package:flutter_kit/analysis_options.yaml

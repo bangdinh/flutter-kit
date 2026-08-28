@@ -4,11 +4,24 @@
 build/
 .flutter-plugins
 .flutter-plugins-dependencies
+# The kit is a library — its lock file is not part of what it ships (apps
+# resolve their own versions), so it stays out of git. The example app IS an
+# app: its lock is committed so codegen output stays reproducible and the
+# CI staleness guard can't go red from a generator bumping itself.
 pubspec.lock
+!/example/pubspec.lock
 
-# Generated code (regenerate with `make gen`)
-*.g.dart
-*.freezed.dart
+# Generated code IS committed (both packages, .g.dart and .freezed.dart).
+# Two reasons: an app consuming flutter_kit by git tag cannot generate code for
+# a dependency (build_runner only generates for the current package), and having
+# the output in git makes a bad build traceable to a diff instead of to someone's
+# local generator state. Keep it in sync: `make gen` / `make gen-example`, then
+# commit the diff — CI fails on a stale one.
+#
+# EXCEPTION: envied output. env.g.dart embeds the contents of .env.* as XOR'd
+# bytes — obfuscation is not encryption, so committing it would commit the very
+# values .env* is ignored to protect.
+**/env.g.dart
 
 # IDE
 .idea/
@@ -19,42 +32,42 @@ pubspec.lock
 .DS_Store
 
 # Android
-android/.gradle/
-android/.kotlin/
-android/captures/
-android/gradlew
-android/gradlew.bat
-android/local.properties
-android/**/GeneratedPluginRegistrant.java
+**/android/.gradle/
+**/android/.kotlin/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
 
 # Environment
 .env*
 
 # iOS
-ios/Pods/
-ios/Podfile.lock
-ios/.symlinks/
-ios/Flutter/Flutter.framework
-ios/Flutter/Flutter.podspec
-ios/Flutter/Generated.xcconfig
-ios/Flutter/app.framework
-ios/Flutter/engine/
-ios/Flutter/ephemeral/
-ios/Runner/GeneratedPluginRegistrant.*
+**/ios/Pods/
+**/ios/Podfile.lock
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.framework
+**/ios/Flutter/engine/
+**/ios/Flutter/ephemeral/
+**/ios/Runner/GeneratedPluginRegistrant.*
 
 # Firebase (project-specific secrets — do NOT commit)
-ios/Runner/GoogleService-Info.plist
-ios/firebase_app_id_file.json
-android/**/google-services.json
+**/ios/Runner/GoogleService-Info.plist
+**/ios/firebase_app_id_file.json
+**/android/**/google-services.json
 
 # macOS
-macos/Pods/
-macos/Flutter/ephemeral/
-macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Pods/
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/GeneratedPluginRegistrant.swift
 
 # Web
-web/favicon.png
-web/icons/
+**/web/favicon.png
+**/web/icons/
 
 # Crash logs
 flutter_*.log

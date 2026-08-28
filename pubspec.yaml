@@ -1,10 +1,15 @@
 name: flutter_kit
-description: A reusable Flutter project template with Feature-first Clean Architecture + Riverpod.
+description: >-
+  Base framework for FPT B2B Flutter apps — app shell, Dio stack, storage,
+  error contract, Result/pagination, theme system and shared widgets.
+  Feature-first Clean Architecture + Riverpod. Consumed as a library; apps
+  define their own environment, routes, features and auth rules.
+version: 0.1.0
 publish_to: "none"
-version: 0.1.0+1
 
 environment:
   sdk: ^3.7.0
+  flutter: ">=3.29.0"
 
 dependencies:
   flutter:
@@ -13,43 +18,30 @@ dependencies:
   # UI
   cached_network_image: ^3.4.1
 
-  # State Management + DI (all-in-one)
+  # State management + DI (Riverpod IS the DI container — no get_it)
   flutter_riverpod: ^3.0.0
   riverpod_annotation: ^4.0.0
-
-  # Router
-  go_router: ^14.8.1
 
   # Network
   dio: ^5.8.0+1
   pretty_dio_logger: ^1.4.0
 
-  # Models / Code Generation
-  freezed_annotation: ^3.0.0
-  json_annotation: ^4.9.0
-
   # Storage
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.5.2
-  envied: ^1.3.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # Linting
-  flutter_lints: ^5.0.0
-
-  # Code Generation
-  build_runner: ^2.4.15
-  freezed: ^3.0.0
-  json_serializable: ^6.9.4
-  riverpod_generator: ^4.0.0
-  riverpod_lint: ^3.0.0
+  # Linting (the preset in lib/analysis_options.yaml is what apps include)
   custom_lint: ^0.8.1
-  envied_generator: ^1.3.8
+  flutter_lints: ^5.0.0
+  riverpod_lint: ^3.0.0
+
+  # Code generation
+  build_runner: ^2.4.15
+  riverpod_generator: ^4.0.0
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/images/

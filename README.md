@@ -1,175 +1,92 @@
-# Flutter Kit
+# flutter_kit
 
-A reusable Flutter project template with **Feature-first Clean Architecture** + **Riverpod**.
+Base **library** for FPT B2B Flutter apps — Feature-first Clean Architecture + Riverpod 3.x.
 
-Based on [Andrea Bizzotto's Flutter Tips](https://github.com/bizz84/flutter-tips-and-tricks) and proven patterns from production apps.
+The kit owns the skeleton. Your app owns its rules.
 
-## Tech Stack
-
-| Concern | Solution |
+| The kit ships | Your app supplies |
 |---|---|
-| State Management + DI | **Riverpod** (flutter_riverpod + riverpod_generator) |
-| Router | **GoRouter** (official Flutter navigation) |
-| Network | **Dio** (interceptor-based HTTP client) |
-| Models | **Freezed** + json_serializable |
-| Storage | SharedPreferences + FlutterSecureStorage |
-| Linting | flutter_lints + riverpod_lint |
+| `bootstrapKit` · `KitApp` · `KitConfig` | environment resolution, routes, features |
+| Dio stack: auth → retry → error mapping | auth policy (`TokenStore`, refresh, logout) |
+| `Result<T>` · sealed `ApiException` · pagination | brand palette, copy, product decisions |
+| `KitTheme`/`KitColors` · `AppSizes` · shared widgets | anything a second app wouldn't want verbatim |
+| lint preset (`package:flutter_kit/analysis_options.yaml`) | |
 
-## Architecture
+Not a template: apps depend on a pinned tag and get fixes by bumping it — see
+[ADR 0001](docs/adr/0001-library-not-template.md).
 
+## Use it
+
+```yaml
+dependencies:
+  flutter_kit:
+    git:
+      url: git@github.com:bangdinh/flutter-kit.git
+      ref: v0.1.0 # exact tag, never a branch
 ```
-lib/
-├── main.dart                          ← Entry point
-├── bootstrap.dart                     ← App initialization + ProviderScope
-├── app/
-│   ├── app.dart                       ← Root ConsumerWidget
-│   ├── router/                        ← GoRouter config + route paths
-│   ├── theme/                         ← AppTheme (light/dark) + AppColors
-│   └── env/                           ← Environment config (dev/stg/prod)
-├── core/
-│   ├── network/
-│   │   ├── api_client.dart            ← Dio provider
-│   │   ├── interceptors/              ← Auth, Error, Logging
-│   │   ├── errors/                    ← ApiException sealed class
-│   │   └── models/                    ← ApiResponse, PaginatedResponse
-│   ├── storage/                       ← SecureStorage, LocalStorage providers
-│   ├── extensions/                    ← BuildContext, String extensions
-│   └── logging/                       ← AppLogger
-├── features/
-│   └── auth/                          ← Sample feature (use as template)
-│       ├── data/
-│       │   ├── datasources/           ← HTTP calls
-│       │   ├── models/                ← DTOs (freezed + json)
-│       │   └── repositories/          ← Repository implementation
-│       ├── domain/
-│       │   ├── entities/              ← Pure business objects (freezed)
-│       │   └── repositories/          ← Abstract contracts
-│       └── presentation/
-│           ├── providers/             ← Riverpod providers (state)
-│           ├── pages/                 ← Screen widgets
-│           └── widgets/               ← Feature-specific widgets
-└── shared/
-    ├── widgets/                       ← Reusable UI components
-    ├── models/                        ← Result type, shared models
-    └── constants/                     ← AppSizes, spacing tokens
-```
-
-## Tips Applied
-
-| # | Tip | Where |
-|---|---|---|
-| #21 | Repositories as abstract classes | `domain/repositories/` |
-| #28 | DDD — Domain Model | `domain/entities/` |
-| #29 | Domain-driven exception handling | `core/network/errors/` |
-| #32 | Use composition aggressively | Widgets, extensions |
-| #37 | Rules for good app architecture | Overall structure |
-| #39 | Feature-first project structure | `features/` |
-| #40 | Anatomy of a Riverpod Provider | All providers |
-| #41 | Fake repositories for testing | Repository pattern |
-| #44 | AsyncValue.guard vs try-catch | `auth_provider.dart` |
-| #46 | ref.watch vs ref.read vs ref.listen | `login_form.dart` |
-| #56 | Async init with provider overrides | `bootstrap.dart` |
-| #62 | try-catch & Result type | `shared/models/result.dart` |
-| #72 | Type annotations for safer code | Strict analysis rules |
-
-## Getting Started
-
-### Prerequisites
-
-- Flutter SDK >= 3.7.0
-- Dart >= 3.7.0
-
-### Setup
-
-```bash
-# Install dependencies
-make get
-
-# Run code generation (freezed, riverpod_generator, json_serializable)
-make gen
-
-# Run the app
-make run-dev
-```
-
-### Create a New Feature
-
-```bash
-make feature NAME=profile
-```
-
-This creates the full feature folder structure. Use `features/auth/` as reference.
-
-### Useful Commands
-
-```bash
-make gen          # One-time code generation
-make gen-watch    # Watch mode for code generation
-make clean        # Clean and re-fetch dependencies
-make analyze      # Run static analysis
-make format       # Format code
-make test         # Run tests
-```
-
-## Key Patterns
-
-### Riverpod as DI + State Management
-
-No `get_it` needed — Riverpod providers ARE the DI container:
 
 ```dart
-// Define
-@riverpod
-AuthRepository authRepository(AuthRepositoryRef ref) {
-  return AuthRepositoryImpl(
-    remoteDataSource: ref.watch(authRemoteDataSourceProvider),
-    secureStorage: ref.watch(secureStorageProvider),
-  );
-}
-
-// Use in widget
-class MyWidget extends ConsumerWidget {
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateNotifierProvider);
-    return authState.when(
-      data: (state) => Text('Hello ${state.user?.name}'),
-      loading: () => CircularProgressIndicator(),
-      error: (e, st) => Text('Error: $e'),
+void main() => bootstrapKit(
+      config: KitConfig(apiBaseUrl: Env.apiBaseUrl, envLabel: 'DEV'),
+      appBuilder: () => const MyApp(),
+      overrides: [
+        // app rules — see docs/extension-points.md
+        unauthorizedHandlerProvider.overrideWithValue(logout),
+      ],
     );
-  }
+
+class MyApp extends ConsumerWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => KitApp(
+        title: 'My App',
+        routerConfig: ref.watch(appRouterProvider), // your GoRouter
+        theme: KitTheme.light(brand),
+        darkTheme: KitTheme.dark(brand),
+      );
 }
 ```
 
-### Result Type for Explicit Error Handling
+Full walkthrough: [docs/getting-started.md](docs/getting-started.md).
 
-```dart
-final result = await repo.login(email, password);
-switch (result) {
-  case Success(:final data):
-    // handle user
-  case Failure(:final exception):
-    // handle error
-}
+## Layout
+
+```
+lib/flutter_kit.dart        the only public surface (barrel)
+lib/analysis_options.yaml   lint preset apps `include:`
+lib/src/app/                KitConfig · bootstrapKit · KitApp
+lib/src/network/            Dio client · interceptors · TokenStore · ApiException · apiCall
+lib/src/storage/            SharedPreferences + secure storage providers
+lib/src/models/             Result<T> · PaginatedState<T>
+lib/src/theme/  ui/         KitColors · KitTheme · AppSizes · shared widgets
+lib/src/providers/          themeMode (persisted) · appLifecycle
+example/                    reference app consuming the kit by path (built in CI)
+docs/                       architecture · network · state · theme · testing · versioning · ADRs
 ```
 
-## Environment Variables
+## Develop
 
-This project uses the [`envied`](https://pub.dev/packages/envied) package to securely manage environment variables and obfuscate them in the compiled code.
-
-To setup environments:
-1. Create `.env.dev`, `.env.staging`, and `.env.prod` files in the project root:
-```properties
-API_BASE_URL=https://api.dev.example.com
+```bash
+make get      # pub get (kit + example)
+make gen      # build_runner for the kit
+make analyze  # dart analyze — `flutter analyze` crashes on some machines
+make test
+make ci       # everything CI runs, kit + example
 ```
-2. Run code generation: `make gen`
 
-This generates the `Env` classes inside `lib/app/env/env.dart` which are then consumed by `app_env.dart`.
+`make help` lists all targets. Contributing rules: [CONTRIBUTING.md](CONTRIBUTING.md).
+Release: `make release VERSION=vX.Y.Z` (see [docs/versioning.md](docs/versioning.md)).
 
-## Rebranding
+## Docs
 
-To use this kit for a new project:
-
-1. Change `name` in `pubspec.yaml`
-2. Update colors in `app/theme/app_colors.dart`
-3. Update `.env.dev`, `.env.staging`, `.env.prod` and run `make gen`
-4. Replace the sample `auth` feature or use it as-is
+| Doc | Read it when |
+|---|---|
+| [getting-started.md](docs/getting-started.md) | standing up a new app |
+| [architecture.md](docs/architecture.md) | deciding where code belongs |
+| [extension-points.md](docs/extension-points.md) | the kit doesn't do what you need |
+| [network.md](docs/network.md) | API calls, errors, tokens, pagination |
+| [state.md](docs/state.md) | Riverpod 3.x rules, bootstrap, lifecycle |
+| [theme.md](docs/theme.md) | rebranding, spacing, shared widgets |
+| [testing.md](docs/testing.md) | provider/widget tests, overriding the kit |
+| [versioning.md](docs/versioning.md) | releasing and pinning |

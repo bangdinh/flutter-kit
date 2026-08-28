@@ -1,105 +1,117 @@
-# Flutter Kit — Claude Code Instructions
+# CLAUDE.md
 
-## Project overview
-A reusable Flutter template using **Feature-first Clean Architecture** + **Riverpod 3.x**.
+Guidance for Claude Code in this repo. **Keep this file lean** — it loads into every prompt. Detail
+goes in `docs/`; behaviour rules go in the skills (below). Here: only high-signal facts that prevent
+wrong guesses, loops and redo.
 
-## Architecture rules
+## What this is
 
-### Layer dependencies (strict)
-- `domain/` → depends on NOTHING (pure Dart, no Flutter imports)
-- `data/` → depends on `domain/` only
-- `presentation/` → depends on `domain/` and reads `data/` through Riverpod providers
-- `core/` → shared infrastructure, any layer can use it
-- `shared/` → shared widgets/models, any layer can use it
+`flutter_kit` = base **library** for FPT B2B Flutter apps (Feature-first Clean Architecture +
+Riverpod 3.x). It ships the app shell (`bootstrapKit`, `KitApp`), the Dio stack (auth → retry →
+error mapping), storage, `Result`/pagination, the theme system and shared widgets. Apps depend on a
+pinned git tag and supply their own rules: environment resolution, routes, features, auth policy,
+palette, copy.
 
-### Feature structure
-Every feature follows this structure — use `features/auth/` as the reference:
+Not a template — nothing is meant to be copied out. `example/` is a real app consuming the kit by
+path, and CI builds it to prove the public API still works for a consumer.
+
+## Ground truth — this is a base **source-code** library
+
+Other apps depend on this. Correctness over cleverness.
+
+- **The source is the authority.** Before writing anything, search for an existing helper and reuse
+  it (`apiCall`, `Result`, `ApiException`, `AppSizes`, `AsyncValueWidget`, `PaginatedNotifier`,
+  `KitTheme`). Recreating something that exists is a defect — check first.
+- **Don't fabricate.** If a symbol, signature or behaviour isn't in the source and you're unsure,
+  read the code. Never invent an API or a "convention" that isn't there. If it genuinely doesn't
+  exist, say so and propose adding it.
+- **New patterns need a basis.** Ground anything new in the framework's own docs or a widely-used,
+  actively-maintained package — and say where it came from. No cargo-culting.
+
+## Layout
+
 ```
-features/<name>/
-├── data/
-│   ├── datasources/    ← HTTP calls (Dio)
-│   ├── models/         ← DTOs with fromJson/toEntity (freezed)
-│   └── repositories/   ← Implements domain contract
-├── domain/
-│   ├── entities/       ← Pure business objects (freezed, NO json)
-│   └── repositories/   ← Abstract contracts
-└── presentation/
-    ├── providers/      ← Riverpod providers (@riverpod annotation)
-    ├── pages/          ← Screen widgets
-    └── widgets/        ← Feature-specific widgets
+lib/flutter_kit.dart      the ONLY public surface (barrel)   docs/          architecture, network, state, theme, testing…
+lib/analysis_options.yaml lint preset apps `include:`         example/       reference app (separate package)
+lib/src/app/              KitConfig · bootstrapKit · KitApp   test/          kit tests
+lib/src/network/          Dio stack · TokenStore · errors     scripts/       release.sh
+lib/src/storage/          prefs + secure storage providers    build.yaml     keeps kit codegen out of example/
+lib/src/theme/  ui/       KitColors · KitTheme · AppSizes · shared widgets
+lib/src/models/           Result<T> · PaginatedState<T>
+lib/src/providers/        themeMode · appLifecycle
 ```
 
-Create new features with: `make feature NAME=<name>`
+## Verify — use these exact commands
 
-### State management — Riverpod 3.x
-- Use `@riverpod` annotation + code generation (NOT hand-written providers)
-- Functional providers use `Ref` (NOT specific `XxxRef` types — those were Riverpod 2.x)
-- Generated provider names drop "Notifier": class `AuthStateNotifier` → `authStateProvider`
-- Use `ref.watch()` in widgets for reactive rebuilds
-- Use `ref.read()` for one-shot actions (button taps)
-- Use `ref.listen()` for side effects — `prev` parameter is nullable
-- Use `AsyncValue.guard()` for async operations in notifiers
-- `AsyncValue.value` is nullable (replaces old `valueOrNull`)
-- All notifiers auto-dispose by default; use `@Riverpod(keepAlive: true)` to persist
-- Riverpod IS the DI container — do NOT add get_it or injectable
-
-### Models
-- Domain entities: `@freezed abstract class` — NO json, NO framework imports
-- Data models: `@freezed abstract class` with `fromJson` + `toEntity()` method
-- Use `const factory` constructors
-
-### Error handling
-- API errors flow through interceptors → `ApiException` (sealed class)
-- Use `apiCall()` wrapper from `core/network/helpers/` for Result-based handling
-- Use `AsyncValue` pattern for loading/error/data in UI
-- Map exceptions to user messages with `apiExceptionToMessage()`
-
-### Naming conventions
-- Files: `snake_case.dart`
-- Classes: `PascalCase`
-- Providers: `@riverpod` generates `<className>Provider` automatically
-- Notifier classes: generated name drops "Notifier" suffix
-- Repositories: abstract in `domain/`, impl suffixed `_impl` in `data/`
-- Data sources: suffixed `_remote_data_source` or `_local_data_source`
-
-## Common commands
 ```bash
-make get          # flutter pub get
-make gen          # build_runner (freezed, riverpod, json)
-make gen-watch    # build_runner watch mode
-make clean        # flutter clean + pub get
-make analyze      # flutter analyze
-make test         # flutter test
-make format       # dart format
-make feature NAME=profile   # scaffold new feature
-make rename NAME=my_app     # fork kit with new name
-make ci           # run full CI locally
+dart run build_runner build && dart analyze lib test && flutter test           # the kit
+cd example && dart run build_runner build && dart analyze lib test && flutter test   # the app
+make ci                                                                        # both
 ```
 
-## Key files
-- `lib/main.dart` — entry point (1 line)
-- `lib/bootstrap.dart` — ProviderScope + async init
-- `lib/app/env/app_env.dart` — API URLs per environment
-- `lib/app/theme/app_colors.dart` — color palette (change to rebrand)
-- `lib/core/network/api_client.dart` — Dio provider with interceptor stack
-- `lib/shared/models/result.dart` — sealed Result<T> type
+- **Use `dart analyze`, not `flutter analyze`** — `flutter analyze` crashes on this machine
+  (analysis server exits 64, Homebrew dart conflict). CI uses `dart analyze` for the same reason.
+- Chain edit → gen → analyze → test with `&&`. Regenerate after touching `@riverpod`, `@freezed`,
+  `@Envied`.
+- **Generated code is committed in both packages** — an app consuming the kit by tag cannot generate
+  code for a dependency (`build_runner` only runs on the current package), and having the output in
+  git makes a bad build traceable to a diff instead of to someone's local generator state. Run
+  `make gen` / `make gen-example` and commit the result; CI fails on a stale one. The single
+  exception is `env.g.dart`: envied embeds the `.env` values into it, and obfuscation is not
+  encryption — it stays untracked, like `.env*`.
+- The kit and `example/` are **separate packages** — `pub get`/codegen/analyze/test each. `build.yaml`
+  deliberately excludes `example/**` from the kit's build_runner (otherwise codegen fails on the
+  app's own dependencies, e.g. go_router).
 
-## Testing patterns
-- Override Riverpod providers with fakes — see `test/features/auth/`
-- Use `ProviderContainer` for unit-testing providers
-- Use `ProviderScope(overrides: [...])` + `MaterialApp` for widget tests
-- Fake repositories go in `test/<feature>/data/fake_<name>_repository.dart`
+## Git — propose, never execute
 
-## SDK & flutter analyze
-- SDK constraint: `^3.7.0`
-- `flutter analyze` may crash on this machine due to Homebrew dart conflict
-- Use: `/Users/bangs/development/flutter/bin/dart analyze lib/` instead
+**Never `git commit`, `git push` or `git tag` on your own.** Propose the exact commands (branch,
+full commit message, push/tag) and let the user run them — even when the task "obviously" needs a
+commit. Editing/staging files is fine. The user often works in parallel: check `git status` before
+touching the index, and never `git add -A`.
 
-## Do NOT
-- Add `get_it` or `injectable` — Riverpod handles DI
-- Use `XxxRef` types in functional providers — use `Ref` (Riverpod 3.x)
-- Use `valueOrNull` on AsyncValue — use `value` (nullable in Riverpod 3.x)
-- Import Flutter in domain layer entities
-- Put business logic in widgets — use providers
-- Create barrel exports per feature — only `core/core.dart` and `shared/shared.dart`
-- Use `auto_route` — this project uses `go_router`
+## Conventions (non-negotiable — don't re-derive)
+
+Flutter `3.41.x` · Dart SDK `^3.7.0` · Riverpod `3.x`.
+
+- **Kit or app?** Add to the kit only what a second app would want unchanged. Product decisions
+  (endpoint paths, wording, brand values, flags) are app rules — add an *extension point* (contract +
+  default + overridable provider), never an app-specific branch inside the kit. See
+  `docs/extension-points.md`.
+- **Public API** = what `lib/flutter_kit.dart` exports. New public symbol → export it there, document
+  it in `docs/`, add a `## [Unreleased]` entry in `CHANGELOG.md`.
+- **Providers**: `@riverpod` codegen only; functional providers take `Ref`; generated name drops
+  `Notifier`; `@Riverpod(keepAlive: true)` for app-lifetime singletons only.
+- **Network**: get Dio from `apiClientProvider`; repositories return `Result<T>` via `apiCall`;
+  errors are the sealed `ApiException`; user copy via `apiErrorMessagesProvider`.
+- **Layers**: `domain/` imports nothing (no flutter, no dio); `presentation/` reaches `data/` only
+  through providers.
+- **TDD**: failing test first. An extension point needs a test for the default *and* for an override.
+- **Do NOT** add `get_it`/`injectable` (Riverpod is the DI container), use `valueOrNull` (gone in
+  3.x), use `XxxRef` types (2.x), or import `package:flutter_kit/src/...` from an app.
+
+## Repo gotchas (these cause loops if unknown)
+
+- Default branch is **`master`** (not `main`) — remote `git@github.com:bangdinh/flutter-kit.git`.
+- **CI runs on PRs into `master` and on manual dispatch only** — not on push. A green local `make ci`
+  is the feedback loop while working; to get a run on a branch before the PR, trigger the workflow
+  manually (Actions → CI → Run workflow).
+- `example/pubspec.lock` **is** committed (it's an app, and it keeps codegen output reproducible);
+  the kit's own lock stays ignored (it's a library).
+- `Override` and `ProviderException` are **not** exported by `flutter_riverpod.dart` — import
+  `package:flutter_riverpod/misc.dart show Override, ProviderException`.
+- Current `build_runner` rejects `--delete-conflicting-outputs` (removed flag). Just
+  `dart run build_runner build`.
+- `example/.env.*` are gitignored; a fresh clone must create them (`API_BASE_URL=...`) or codegen
+  fails. CI seeds them.
+- Re-tagging a published version poisons `pub` caches of apps pinning it — ship a new version.
+- Phase 2 (not built yet): a Dart scaffold CLI + `templates/` that generates a new app, shipping a
+  service-only `feature-flow` skill. Don't assume it exists.
+
+## Follow the skills (auto-applied)
+
+Two skills under `.claude/skills/` trigger on their `description` — **complying with them is enough;
+you don't need to read the docs**. Each owns one scope (don't cross):
+
+- **flutter-arch** — where code belongs, layer rules, Riverpod/network/theme conventions, kit-vs-app.
+- **git-flow** — branches, commits, PR checklist, SemVer tag + CHANGELOG.

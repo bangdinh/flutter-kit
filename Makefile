@@ -1,66 +1,84 @@
-.PHONY: get gen gen-watch clean analyze format test test-coverage run-dev run-stg run-prod feature rename ci
+# Makefile — dev tooling for flutter_kit (library) + example app.
+# `make` or `make help` lists the commands.
+#
+# The kit and example/ are SEPARATE packages: most targets run in both, which is
+# why each has a `-kit` / `-example` variant.
 
-## Dependencies
-get:
-	flutter pub get
+.DEFAULT_GOAL := help
+.PHONY: help get gen gen-watch clean analyze format test test-coverage \
+        get-example gen-example analyze-example test-example \
+        run-dev run-stg run-prod ci release
 
-## Code Generation (freezed, json_serializable, riverpod_generator)
-gen:
-	dart run build_runner build --delete-conflicting-outputs
+DART ?= dart
+FLUTTER ?= flutter
+EXAMPLE = example
 
-gen-watch:
-	dart run build_runner watch --delete-conflicting-outputs
+help: ## List commands (default)
+	@echo "flutter_kit — commands:"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-## Clean
-clean:
-	flutter clean
-	rm -rf .dart_tool build
-	flutter pub get
+## ── Dependencies ────────────────────────────────────────────────────────────
+get: ## pub get for the kit (also resolves example/)
+	$(FLUTTER) pub get
 
-## Quality
-analyze:
-	flutter analyze
+get-example: ## pub get for the example app only
+	cd $(EXAMPLE) && $(FLUTTER) pub get
 
-format:
-	dart format lib/ test/ --line-length 80
+## ── Code generation (riverpod / freezed / json / envied) ────────────────────
+gen: ## build_runner for the kit (build.yaml keeps example/ out)
+	$(DART) run build_runner build
 
-## Test
-test:
-	flutter test
+gen-example: ## build_runner for the example app
+	cd $(EXAMPLE) && $(DART) run build_runner build
 
-test-coverage:
-	flutter test --coverage
-	@echo "Open coverage/lcov.info with your IDE or genhtml"
+gen-watch: ## build_runner watch for the kit
+	$(DART) run build_runner watch
 
-## Run
-run-dev:
-	flutter run --dart-define=ENV=dev
+## ── Quality ─────────────────────────────────────────────────────────────────
+# `flutter analyze` crashes on some machines (Homebrew dart conflict) — the kit
+# always uses `dart analyze`, which is what CI runs too.
+analyze: ## dart analyze the kit
+	$(DART) analyze lib test
 
-run-stg:
-	flutter run --dart-define=ENV=staging
+analyze-example: ## dart analyze the example app
+	cd $(EXAMPLE) && $(DART) analyze lib test
 
-run-prod:
-	flutter run --dart-define=ENV=prod --release
+format: ## dart format kit + example
+	$(DART) format lib test $(EXAMPLE)/lib $(EXAMPLE)/test --line-length 80
 
-## New Feature scaffold
-# Usage: make feature NAME=profile
-feature:
-	@echo "Creating feature: $(NAME)"
-	mkdir -p lib/features/$(NAME)/data/datasources
-	mkdir -p lib/features/$(NAME)/data/models
-	mkdir -p lib/features/$(NAME)/data/repositories
-	mkdir -p lib/features/$(NAME)/domain/entities
-	mkdir -p lib/features/$(NAME)/domain/repositories
-	mkdir -p lib/features/$(NAME)/presentation/providers
-	mkdir -p lib/features/$(NAME)/presentation/pages
-	mkdir -p lib/features/$(NAME)/presentation/widgets
-	@echo "✅ Feature $(NAME) created. See features/auth/ for reference."
+## ── Tests ───────────────────────────────────────────────────────────────────
+test: ## flutter test for the kit
+	$(FLUTTER) test
 
-## Rename project (fork kit for new app)
-# Usage: make rename NAME=my_awesome_app
-rename:
-	./scripts/rename_project.sh $(NAME)
+test-example: ## flutter test for the example app
+	cd $(EXAMPLE) && $(FLUTTER) test
 
-## CI — run locally what GitHub Actions runs
-ci: get gen analyze format test
-	@echo "✅ All CI checks passed"
+test-coverage: ## kit tests with coverage (coverage/lcov.info)
+	$(FLUTTER) test --coverage
+
+## ── Run the example app ─────────────────────────────────────────────────────
+run-dev: ## run example against dev
+	cd $(EXAMPLE) && $(FLUTTER) run --dart-define=ENV=dev
+
+run-stg: ## run example against staging
+	cd $(EXAMPLE) && $(FLUTTER) run --dart-define=ENV=staging
+
+run-prod: ## run example against prod (release)
+	cd $(EXAMPLE) && $(FLUTTER) run --dart-define=ENV=prod --release
+
+## ── Everything CI runs, locally ─────────────────────────────────────────────
+clean: ## flutter clean both packages, then pub get
+	$(FLUTTER) clean
+	cd $(EXAMPLE) && $(FLUTTER) clean
+	rm -rf .dart_tool build $(EXAMPLE)/.dart_tool $(EXAMPLE)/build
+	$(FLUTTER) pub get
+
+ci: get gen analyze test get-example gen-example analyze-example test-example ## full local CI
+	@echo "✅ kit + example: analyze and tests passed"
+
+## ── Release (maintainer) ────────────────────────────────────────────────────
+# make release VERSION=v0.2.0        → CHANGELOG + commit + annotated tag (no push)
+# make release VERSION=v0.2.0 DRY=1  → preview the CHANGELOG entry only
+release: ## CHANGELOG + tag for VERSION (DRY=1 to preview)
+	@test -n "$(VERSION)" || { echo "Usage: make release VERSION=vX.Y.Z [DRY=1]"; exit 1; }
+	@bash scripts/release.sh "$(VERSION)" $(if $(DRY),--dry,)
