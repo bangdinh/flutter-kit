@@ -1,0 +1,55 @@
+name: flutter_kit_example
+description: >-
+  Reference app for flutter_kit — shows how an app supplies its own
+  environment, router, features and auth rules on top of the kit.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.7.0
+  flutter: ">=3.29.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # The kit. Real apps pin a tag instead:
+  #   flutter_kit:
+  #     git:
+  #       url: git@git.fpt.net:b2b-manager/flutter-kit.git
+  #       ref: v0.1.0
+  flutter_kit:
+    path: ../
+
+  # App rules the kit deliberately does not own
+  go_router: ^14.8.1 # routes
+  envied: ^1.3.8 # environment resolution
+
+  # Data sources talk to Dio directly, so the app depends on it explicitly
+  # (the kit re-exports the configured client, not the package).
+  dio: ^5.8.0+1
+
+  # Feature models
+  flutter_riverpod: ^3.0.0
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+  riverpod_annotation: ^4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  custom_lint: ^0.8.1
+  flutter_lints: ^5.0.0
+  riverpod_lint: ^3.0.0
+
+  build_runner: ^2.4.15
+  envied_generator: ^1.3.8
+  freezed: ^3.0.0
+  json_serializable: ^6.9.4
+  riverpod_generator: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

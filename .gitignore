@@ -19,42 +19,42 @@ pubspec.lock
 .DS_Store
 
 # Android
-android/.gradle/
-android/.kotlin/
-android/captures/
-android/gradlew
-android/gradlew.bat
-android/local.properties
-android/**/GeneratedPluginRegistrant.java
+**/android/.gradle/
+**/android/.kotlin/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
 
 # Environment
 .env*
 
 # iOS
-ios/Pods/
-ios/Podfile.lock
-ios/.symlinks/
-ios/Flutter/Flutter.framework
-ios/Flutter/Flutter.podspec
-ios/Flutter/Generated.xcconfig
-ios/Flutter/app.framework
-ios/Flutter/engine/
-ios/Flutter/ephemeral/
-ios/Runner/GeneratedPluginRegistrant.*
+**/ios/Pods/
+**/ios/Podfile.lock
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.framework
+**/ios/Flutter/engine/
+**/ios/Flutter/ephemeral/
+**/ios/Runner/GeneratedPluginRegistrant.*
 
 # Firebase (project-specific secrets — do NOT commit)
-ios/Runner/GoogleService-Info.plist
-ios/firebase_app_id_file.json
-android/**/google-services.json
+**/ios/Runner/GoogleService-Info.plist
+**/ios/firebase_app_id_file.json
+**/android/**/google-services.json
 
 # macOS
-macos/Pods/
-macos/Flutter/ephemeral/
-macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Pods/
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/GeneratedPluginRegistrant.swift
 
 # Web
-web/favicon.png
-web/icons/
+**/web/favicon.png
+**/web/icons/
 
 # Crash logs
 flutter_*.log

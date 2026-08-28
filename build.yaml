@@ -1,0 +1,9 @@
+# The example app is a package of its own nested in this directory. Without
+# this, build_runner (and its analysis) would try to generate code for
+# example/ using the kit's dependencies and fail on the app's own packages.
+targets:
+  $default:
+    sources:
+      - lib/**
+      - test/**
+      - $package$

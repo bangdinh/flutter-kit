@@ -2,85 +2,96 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
-# Cancel in-progress runs for the same branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FLUTTER_VERSION: "3.41.x"
+
 jobs:
-  quality:
-    name: Quality checks
+  kit:
+    name: Kit — analyze + test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.29.x" # latest stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
+      - run: flutter pub get
+      - run: dart run build_runner build
+      # `dart analyze` (not `flutter analyze`) — same command the Makefile uses.
+      - run: dart analyze lib test
+      - run: dart format --set-exit-if-changed lib test
+      - run: flutter test --coverage
 
-      - name: Code generation
-        run: dart run build_runner build --delete-conflicting-outputs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kit-coverage
+          path: coverage/lcov.info
+          if-no-files-found: warn
 
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Check formatting
-        run: dart format --set-exit-if-changed lib/ test/
-
-      - name: Run tests
-        run: flutter test --coverage
-
-      - name: Check coverage file exists
-        run: |
-          if [ -f coverage/lcov.info ]; then
-            echo "✅ Coverage report generated"
-          else
-            echo "⚠️ No coverage report (no tests ran?)"
-          fi
-
-  build-android:
-    name: Build Android
-    needs: quality
+  example:
+    name: Example app — analyze + test
+    needs: kit
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
 
+      # The app consumes the kit via a path dependency, so this run also proves
+      # the kit's public API still builds for a consumer.
+      - name: Seed example env files
+        working-directory: example
+        run: |
+          for e in dev staging prod; do
+            [ -f ".env.$e" ] || echo "API_BASE_URL=https://api.example.com" > ".env.$e"
+          done
+
+      - working-directory: example
+        run: flutter pub get
+      - working-directory: example
+        run: dart run build_runner build
+      - working-directory: example
+        run: dart analyze lib test
+      - working-directory: example
+        run: flutter test
+
+  build-android:
+    name: Example — build APK
+    needs: example
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: "zulu"
           java-version: "17"
-
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.29.x"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
-      - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
-      - run: flutter build apk --debug
+      - name: Seed example env files
+        working-directory: example
+        run: |
+          for e in dev staging prod; do
+            [ -f ".env.$e" ] || echo "API_BASE_URL=https://api.example.com" > ".env.$e"
+          done
 
-  build-ios:
-    name: Build iOS
-    needs: quality
-    runs-on: macos-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.29.x"
-          cache: true
-
-      - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
-      - run: flutter build ios --no-codesign
+      - working-directory: example
+        run: flutter pub get
+      - working-directory: example
+        run: dart run build_runner build
+      - working-directory: example
+        run: flutter build apk --debug
