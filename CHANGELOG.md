@@ -45,3 +45,7 @@ PATCH = compatible fix).
 - `dart analyze` replaces `flutter analyze` in Makefile and CI (the analysis server crashes on some
   machines).
 - `apiClientProvider` closes its `Dio` on dispose.
+- `example/`: Android build failed with `JetifyTransform ... Java heap space` — Jetifier was left
+  enabled and rewrote Flutter's engine jars. Disabled (`checkJetifier` confirms nothing needs it)
+  and raised `org.gradle.jvmargs` to the current Flutter template value.
+- `example/`: `targetSdkVersion` 34 → 36, matching `compileSdkVersion`.

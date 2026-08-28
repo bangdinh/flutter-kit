@@ -25,7 +25,9 @@ android {
     defaultConfig {
         applicationId "com.example.flutter_kit"
         minSdkVersion flutter.minSdkVersion
-        targetSdkVersion 34
+        // Kept in step with compileSdkVersion above — a 2-level gap means the app
+        // compiles against APIs whose runtime behaviour changes it never opts into.
+        targetSdkVersion 36
         versionCode flutter.versionCode
         versionName flutter.versionName
     }
