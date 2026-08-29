@@ -36,6 +36,19 @@ Future<void> login({required String email, required String password}) async {
 }
 ```
 
+## Provider-level retry is OFF in kit apps
+
+Riverpod 3 retries a provider whose build throws — up to 10 times, 200ms doubling to 6.4s — for any
+error that isn't an `Error` or a `ProviderException`. An `ApiException` qualifies, so a plain 404
+would keep the UI in `AsyncLoading` for the better part of a minute.
+
+`bootstrapKit` therefore passes `retry: kitNoProviderRetry` to `ProviderScope`. Retry belongs to the
+HTTP layer, where `RetryInterceptor` can tell a timeout or a 5xx apart from a 404 and acts before a
+`Result` exists. Opt back in per app with `bootstrapKit(providerRetry: ProviderContainer.defaultRetry)`.
+
+**In tests this bites**: a bare `ProviderContainer` uses Riverpod's default, so a test of an error
+path hangs until the 30s timeout. Pass `retry: (_, _) => null` — the generated feature test does.
+
 ## Async dependencies are resolved before `runApp`
 
 `bootstrapKit` awaits `SharedPreferences` and injects it as an override, so `localStorageProvider`

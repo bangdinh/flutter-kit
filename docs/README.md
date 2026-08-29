@@ -9,6 +9,7 @@
 | [state.md](state.md) | Riverpod providers, bootstrap, lifecycle |
 | [theme.md](theme.md) | Rebranding, spacing, shared widgets |
 | [testing.md](testing.md) | Testing providers, widgets, kit overrides |
+| [scaffold.md](scaffold.md) | Generating a new app, or a feature inside one |
 | [versioning.md](versioning.md) | Releasing the kit, pinning it from an app |
 | [adr/](adr/) | Why a hard-to-reverse decision was made |
 

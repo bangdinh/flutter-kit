@@ -1,0 +1,24 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+import '../../domain/entities/__feature__.dart';
+
+part '__feature___model.freezed.dart';
+part '__feature___model.g.dart';
+
+/// DTO — the server's shape. Map its field names here with `@JsonKey` so the
+/// entity keeps the app's vocabulary, and a renamed JSON field touches one file.
+@freezed
+abstract class __Feature__Model with _$__Feature__Model {
+  const __Feature__Model._();
+
+  const factory __Feature__Model({
+    required String id,
+    required String name,
+  }) = ___Feature__Model;
+
+  factory __Feature__Model.fromJson(Map<String, dynamic> json) =>
+      _$__Feature__ModelFromJson(json);
+
+  /// Bridge data → domain. Never let a DTO out of `data/`.
+  __Feature__ toEntity() => __Feature__(id: id, name: name);
+}

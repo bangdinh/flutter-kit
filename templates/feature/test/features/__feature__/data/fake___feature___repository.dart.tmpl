@@ -1,0 +1,33 @@
+import 'package:__name__/features/__feature__/domain/entities/__feature__.dart';
+import 'package:__name__/features/__feature__/domain/repositories/__feature___repository.dart';
+import 'package:flutter_kit/flutter_kit.dart';
+
+/// In-memory implementation of the domain contract.
+///
+/// Tests override `__feature__RepositoryProvider` with this — no HTTP, no
+/// server, no timing. Set [failure] to exercise the error path.
+class Fake__Feature__Repository implements __Feature__Repository {
+  Fake__Feature__Repository({
+    List<__Feature__>? items,
+    this.failure,
+  }) : items = items ?? const [__Feature__(id: '1', name: 'First')];
+
+  final List<__Feature__> items;
+  final ApiException? failure;
+
+  @override
+  Future<Result<List<__Feature__>>> fetchAll() async {
+    final error = failure;
+    if (error != null) return Result.failure(error);
+    return Result.success(items);
+  }
+
+  @override
+  Future<Result<__Feature__>> fetchById(String id) async {
+    final error = failure;
+    if (error != null) return Result.failure(error);
+    final match = items.where((item) => item.id == id);
+    if (match.isEmpty) return Result.failure(const NotFoundException());
+    return Result.success(match.first);
+  }
+}

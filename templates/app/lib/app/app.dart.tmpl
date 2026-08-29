@@ -1,0 +1,30 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_kit/flutter_kit.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'router/app_router.dart';
+
+/// **App rule**: brand palette. Only the tokens that differ from kit defaults —
+/// everything else stays consistent with the rest of the fleet.
+const _brand = KitColors(
+  primary: Color(0xFF2563EB),
+  secondary: Color(0xFF7C3AED),
+);
+
+/// Root widget — hands this app's router and palette to the kit's shell.
+///
+/// `KitApp` owns edge-to-edge system bars and the persisted theme mode; a page
+/// that must not sit under the bars still needs `SafeArea`.
+class __Name__App extends ConsumerWidget {
+  const __Name__App({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return KitApp(
+      title: '__title__',
+      routerConfig: ref.watch(appRouterProvider),
+      theme: KitTheme.light(_brand),
+      darkTheme: KitTheme.dark(_brand),
+    );
+  }
+}

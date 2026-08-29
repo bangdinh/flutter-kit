@@ -1,0 +1,55 @@
+# __title__
+
+__description__
+
+Built on [flutter_kit](https://github.com/bangdinh/flutter-kit) (`__kit_ref__`) — Feature-first
+Clean Architecture + Riverpod 3.x. The kit provides the app shell, HTTP stack, storage, theme system
+and shared widgets; this repo provides the environment, routes, features and product rules.
+
+## Setup
+
+```bash
+cp .env.example .env.dev && cp .env.example .env.staging && cp .env.example .env.prod
+$EDITOR .env.dev            # set API_BASE_URL per environment
+make get && make gen
+make ci                     # analyze + test
+make run-dev
+```
+
+`.env.*` are gitignored — never commit them, and never commit the `env.g.dart` they generate
+(envied obfuscates, it does not encrypt).
+
+## Layout
+
+```
+lib/bootstrap.dart       app rules: KitConfig + provider overrides
+lib/app/env/             environment resolution → KitConfig
+lib/app/router/          GoRouter + route paths
+lib/app/app.dart         brand palette + KitApp
+lib/features/<name>/     data/ domain/ presentation/
+```
+
+## Add a feature
+
+```bash
+make feature NAME=profile   # scaffolds data/domain/presentation from the kit
+make gen
+```
+
+Then follow the order in `.claude/skills/feature-flow/SKILL.md`: entity → repository contract →
+fake → DTO → datasource → repository impl → provider → page → route → test.
+
+## Commands
+
+`make help` lists everything. The ones that matter: `make gen`, `make analyze`, `make test`,
+`make ci`, `make run-dev`, `make feature NAME=<name>`.
+
+## Upgrading the kit
+
+Edit `ref:` in `pubspec.yaml`, then `make get && make gen && make ci`. Read the kit's `CHANGELOG.md`
+first — pre-1.0, a minor bump can be breaking. Keep the bump in its own commit.
+
+## Docs
+
+Architecture, network stack, state rules, theming, testing and the list of extension points live in
+the kit: [docs/](https://github.com/bangdinh/flutter-kit/tree/master/docs).

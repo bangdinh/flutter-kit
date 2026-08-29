@@ -1,0 +1,49 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_kit/flutter_kit.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../providers/__feature___provider.dart';
+
+/// Screen for __title__.
+///
+/// `AsyncValueWidget` covers loading/error/data — don't hand-roll those three
+/// branches. Wording for errors comes from the kit's message provider.
+class __Feature__Page extends ConsumerWidget {
+  const __Feature__Page({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items = ref.watch(__feature__ListProvider);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('__title__')),
+      body: RefreshIndicator(
+        onRefresh: () =>
+            ref.read(__feature__ListProvider.notifier).refresh(),
+        child: AsyncValueWidget(
+          value: items,
+          error: (error, _) => Center(
+            child: Padding(
+              padding: AppSizes.pageAll,
+              child: Text(
+                error is ApiException
+                    ? ref.read(apiErrorMessagesProvider).message(error)
+                    : error.toString(),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          data: (data) => ListView.separated(
+            padding: AppSizes.pageAll,
+            itemCount: data.length,
+            separatorBuilder: (_, _) => AppSizes.gap12,
+            itemBuilder: (context, index) => ListTile(
+              title: Text(data[index].name),
+              subtitle: Text(data[index].id),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

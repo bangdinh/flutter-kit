@@ -1,0 +1,80 @@
+name: CI
+
+# Only PRs targeting master, so day-to-day commits on a feature branch don't
+# spam the pipeline. Need a run on a branch first? Actions → CI → Run workflow.
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.41.x"
+
+jobs:
+  quality:
+    name: Analyze + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The kit is a private git dependency; a deploy key or PAT with read
+          # access must be available to `flutter pub get` below.
+          persist-credentials: true
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # .env.* are gitignored, so CI writes non-secret placeholders. Real values
+      # belong in repository secrets and get written here per environment.
+      - name: Seed env files
+        run: |
+          for e in dev staging prod; do
+            echo "API_BASE_URL=${{ vars.API_BASE_URL || 'https://api.example.com' }}" > ".env.$e"
+          done
+
+      - run: flutter pub get
+      - run: dart run build_runner build
+
+      # Generated code is committed, so regenerating must be a no-op. A diff
+      # means someone changed an annotation without running `make gen`.
+      - name: Generated code is up to date
+        run: |
+          git diff --exit-code -- lib || {
+            echo "::error::generated code is stale — run 'make gen' and commit the result."
+            exit 1
+          }
+
+      - run: dart analyze lib test
+      - run: dart format --set-exit-if-changed lib test
+      - run: flutter test --coverage
+
+  build-android:
+    name: Build APK
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Seed env files
+        run: |
+          for e in dev staging prod; do
+            echo "API_BASE_URL=${{ vars.API_BASE_URL || 'https://api.example.com' }}" > ".env.$e"
+          done
+
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter build apk --debug

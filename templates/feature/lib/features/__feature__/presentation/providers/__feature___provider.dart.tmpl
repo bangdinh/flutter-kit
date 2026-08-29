@@ -1,0 +1,32 @@
+import 'package:flutter_kit/flutter_kit.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../data/repositories/__feature___repository_impl.dart';
+import '../../domain/entities/__feature__.dart';
+
+part '__feature___provider.g.dart';
+
+/// Feature state. Entities in, entities out — no DTO, no `Map`, no Dio.
+///
+/// The generated provider drops the `Notifier` suffix:
+/// `__Feature__ListNotifier` → `__feature__ListProvider`.
+@riverpod
+class __Feature__ListNotifier extends _$__Feature__ListNotifier {
+  @override
+  Future<List<__Feature__>> build() => _load();
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_load);
+  }
+
+  Future<List<__Feature__>> _load() async {
+    final result = await ref.read(__feature__RepositoryProvider).fetchAll();
+    return switch (result) {
+      Success(:final data) => data,
+      // Throwing here is intentional: AsyncValue carries the error to the UI,
+      // which renders it with apiErrorMessagesProvider.
+      Failure(:final exception) => throw exception,
+    };
+  }
+}

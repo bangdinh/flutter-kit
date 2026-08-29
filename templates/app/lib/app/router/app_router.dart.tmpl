@@ -1,0 +1,55 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_kit/flutter_kit.dart';
+import 'package:go_router/go_router.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import 'route_paths.dart';
+
+part 'app_router.g.dart';
+
+/// **App rule**: the route table. The kit has no opinion on routes — it takes
+/// whatever `RouterConfig` this provider returns.
+///
+/// Gating routes on auth: watch your auth provider here and return a path from
+/// `redirect`. Keep the redirect logic in this file, not spread across pages.
+@riverpod
+GoRouter appRouter(Ref ref) {
+  return GoRouter(
+    initialLocation: RoutePaths.home,
+    debugLogDiagnostics: true,
+    routes: [
+      GoRoute(
+        path: RoutePaths.home,
+        name: 'home',
+        builder: (context, state) => const _HomePlaceholder(),
+      ),
+    ],
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
+  );
+}
+
+/// Delete this once the first real feature has a page.
+/// `dart run flutter_kit:new_feature <name>` (or `make feature NAME=<name>`)
+/// generates the folder structure for one.
+class _HomePlaceholder extends StatelessWidget {
+  const _HomePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('__title__')),
+      body: const Center(
+        child: Padding(
+          // Spacing tokens come from the kit — no magic numbers in widgets.
+          padding: AppSizes.pageAll,
+          child: Text(
+            'Replace this with your first feature:\n'
+            'make feature NAME=<name>',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
+}

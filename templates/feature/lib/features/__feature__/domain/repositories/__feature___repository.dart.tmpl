@@ -1,0 +1,14 @@
+import 'package:flutter_kit/flutter_kit.dart';
+
+import '../entities/__feature__.dart';
+
+/// Contract the presentation layer codes against.
+///
+/// Returns `Result<T>` rather than throwing, so a caller cannot forget the
+/// failure path. Implemented by `data/repositories/__feature___repository_impl.dart`
+/// in production and by a fake in tests.
+abstract class __Feature__Repository {
+  Future<Result<List<__Feature__>>> fetchAll();
+
+  Future<Result<__Feature__>> fetchById(String id);
+}

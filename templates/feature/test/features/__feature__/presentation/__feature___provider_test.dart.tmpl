@@ -1,0 +1,57 @@
+import 'package:__name__/features/__feature__/data/repositories/__feature___repository_impl.dart';
+import 'package:__name__/features/__feature__/domain/entities/__feature__.dart';
+import 'package:__name__/features/__feature__/presentation/providers/__feature___provider.dart';
+import 'package:flutter_kit/flutter_kit.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../data/fake___feature___repository.dart';
+
+void main() {
+  ProviderContainer containerWith(Fake__Feature__Repository repository) {
+    final container = ProviderContainer(
+      overrides: [
+        __feature__RepositoryProvider.overrideWithValue(repository),
+      ],
+      // Riverpod 3 retries a throwing provider 10 times with backoff by
+      // default; `bootstrapKit` turns that off in the app (kitNoProviderRetry)
+      // and a test must do the same or the error path hangs until timeout.
+      retry: (_, _) => null,
+    );
+    addTearDown(container.dispose);
+
+    // Reading `.future` alone opens a subscription that closes immediately, and
+    // an auto-dispose provider is then disposed mid-load. Hold one open.
+    final subscription = container.listen(__feature__ListProvider, (_, _) {});
+    addTearDown(subscription.close);
+
+    return container;
+  }
+
+  group('__feature__ListProvider', () {
+    test('exposes the repository items', () async {
+      final container = containerWith(
+        Fake__Feature__Repository(
+          items: const [__Feature__(id: '7', name: 'Seven')],
+        ),
+      );
+
+      final items = await container.read(__feature__ListProvider.future);
+
+      expect(items.single.name, 'Seven');
+    });
+
+    test('surfaces a repository failure as an error state', () async {
+      final container = containerWith(
+        Fake__Feature__Repository(failure: const NotFoundException()),
+      );
+
+      // Awaiting `.future` surfaces the ApiException itself. (A *synchronous*
+      // provider read would hand you a ProviderException wrapping it instead.)
+      await expectLater(
+        container.read(__feature__ListProvider.future),
+        throwsA(isA<NotFoundException>()),
+      );
+    });
+  });
+}

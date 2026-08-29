@@ -1,0 +1,38 @@
+import 'package:flutter_kit/flutter_kit.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../domain/entities/__feature__.dart';
+import '../../domain/repositories/__feature___repository.dart';
+import '../datasources/__feature___remote_data_source.dart';
+
+part '__feature___repository_impl.g.dart';
+
+/// Override this provider with a fake in tests — see
+/// `test/features/__feature__/data/fake___feature___repository.dart`.
+@riverpod
+__Feature__Repository __feature__Repository(Ref ref) {
+  return __Feature__RepositoryImpl(
+    remoteDataSource: ref.watch(__feature__RemoteDataSourceProvider),
+  );
+}
+
+class __Feature__RepositoryImpl implements __Feature__Repository {
+  __Feature__RepositoryImpl({required this.remoteDataSource});
+
+  final __Feature__RemoteDataSource remoteDataSource;
+
+  /// `apiCall` turns any `DioException`/`ApiException` into
+  /// `Result.failure(ApiException)`, so nothing above this layer sees Dio.
+  @override
+  Future<Result<List<__Feature__>>> fetchAll() {
+    return apiCall(() async {
+      final models = await remoteDataSource.fetchAll();
+      return models.map((model) => model.toEntity()).toList();
+    });
+  }
+
+  @override
+  Future<Result<__Feature__>> fetchById(String id) {
+    return apiCall(() async => (await remoteDataSource.fetchById(id)).toEntity());
+  }
+}

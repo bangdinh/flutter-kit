@@ -39,8 +39,12 @@ jobs:
           }
 
       # `dart analyze` (not `flutter analyze`) — same command the Makefile uses.
-      - run: dart analyze lib test
-      - run: dart format --set-exit-if-changed lib test
+      # flutter-arch ships verbatim into generated apps — a drifted copy means
+      # new apps get different rules than the kit enforces.
+      - run: make verify-skill
+
+      - run: dart analyze lib bin test
+      - run: dart format --set-exit-if-changed lib bin test
       - run: flutter test --coverage
 
       - uses: actions/upload-artifact@v4

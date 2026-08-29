@@ -1,0 +1,28 @@
+import 'package:__name__/app/app.dart';
+import 'package:flutter_kit/flutter_kit.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Smoke test: the app boots, the router resolves and the kit shell renders.
+///
+/// It fails the moment app wiring breaks — a bad route table, a provider the
+/// app forgot to override, a kit upgrade that changed the shell. Keep it.
+void main() {
+  testWidgets('boots to the initial route', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        // bootstrapKit does this in production; a widget test supplies it here
+        // instead of booting the real app.
+        overrides: [localStorageProvider.overrideWithValue(prefs)],
+        child: const __Name__App(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('__title__'), findsOneWidget);
+  });
+}
