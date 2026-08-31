@@ -1,0 +1,51 @@
+name: __name__
+description: __description__
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.7.0
+  flutter: ">=3.29.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Base framework. Pinned to an exact tag — never a branch. Bump deliberately
+  # and read the kit's CHANGELOG before you do.
+  __kit_dependency__
+
+  # App rules the kit deliberately does not own
+  go_router: ^14.8.1 # routes
+  envied: ^1.3.8 # environment resolution
+
+  # Used directly by app code (the kit exposes a configured client, not the
+  # packages themselves)
+  dio: ^5.8.0+1
+  flutter_riverpod: ^3.0.0
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+  riverpod_annotation: ^4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Test-only: the smoke test supplies the SharedPreferences that bootstrapKit
+  # injects in production.
+  shared_preferences: ^2.5.2
+
+  custom_lint: ^0.8.1
+  flutter_lints: ^5.0.0
+  riverpod_lint: ^3.0.0
+
+  build_runner: ^2.4.15
+  envied_generator: ^1.3.8
+  freezed: ^3.0.0
+  json_serializable: ^6.9.4
+  riverpod_generator: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

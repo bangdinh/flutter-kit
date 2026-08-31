@@ -31,10 +31,16 @@ class AuthRemoteDataSource {
       options: Options(extra: {'skip_auth': true}),
       data: {'email': email, 'password': password},
     );
-    final data = response.data!['data']! as Map<String, dynamic>;
+    // ApiData unwraps the gokit `{"data": ...}` envelope — never index into
+    // response.data['data'] by hand.
+    final payload =
+        ApiData<Map<String, dynamic>>.fromJson(
+          response.data!,
+          (json) => json! as Map<String, dynamic>,
+        ).data;
     return (
-      user: UserModel.fromJson(data['user']! as Map<String, dynamic>),
-      accessToken: data['accessToken']! as String,
+      user: UserModel.fromJson(payload['user']! as Map<String, dynamic>),
+      accessToken: payload['accessToken']! as String,
     );
   }
 
@@ -42,6 +48,9 @@ class AuthRemoteDataSource {
 
   Future<UserModel> getProfile() async {
     final response = await dio.get<Map<String, dynamic>>('/auth/profile');
-    return UserModel.fromJson(response.data!['data']! as Map<String, dynamic>);
+    return ApiData<UserModel>.fromJson(
+      response.data!,
+      (json) => UserModel.fromJson(json! as Map<String, dynamic>),
+    ).data;
   }
 }

@@ -1,0 +1,92 @@
+# CLAUDE.md
+
+Guidance for Claude Code in **__name__**. Keep this lean — it loads into every prompt.
+
+## What this is
+
+`__name__` — a Flutter app built on **flutter_kit** (`ref: __kit_ref__` in `pubspec.yaml`), using
+Feature-first Clean Architecture + Riverpod 3.x.
+
+The kit owns the skeleton: app bootstrap (`bootstrapKit`), the `MaterialApp` shell (`KitApp`), the
+Dio stack (auth → retry → error mapping), storage, `Result`/pagination, the theme system, shared
+widgets, and the lint preset. **This repo owns its rules**: environment resolution
+(`lib/app/env/`), routes (`lib/app/router/`), features (`lib/features/`), auth policy and brand
+palette (provider overrides in `lib/bootstrap.dart`, colors in `lib/app/app.dart`).
+
+## Ground truth
+
+- **Read the kit before writing.** Its API is one barrel: `package:flutter_kit/flutter_kit.dart`.
+  Reuse `apiCall`, `Result`, `ApiException`, `AppSizes`, `AsyncValueWidget`, `PaginatedListView`,
+  `KitTheme`, `AppButton`, `AppTextField` instead of writing them again.
+- **Never import `package:flutter_kit/src/...`** — that's the kit's private half and can change in a
+  patch release.
+- **Don't fabricate.** If a kit symbol or behaviour isn't certain, open the package source (pub cache
+  or the kit repo) and check. Never invent an API.
+- **Missing behaviour is an extension point, not a workaround.** No second `Dio`, no copied theme
+  file, no forked kit code. Ask for a contract + overridable provider in the kit.
+
+## Layout
+
+```
+lib/main.dart            1 line → bootstrap()
+lib/bootstrap.dart       app rules: KitConfig + provider overrides
+lib/app/env/             environment resolution (envied) → KitConfig
+lib/app/router/          GoRouter + RoutePaths
+lib/app/app.dart         __Name__App: brand palette + KitApp
+lib/features/<name>/     data/ domain/ presentation/  (see the feature-flow skill)
+test/features/<name>/    fakes + provider/widget tests
+```
+
+## Verify — use these exact commands
+
+```bash
+make gen && make analyze && make test     # or: make ci
+```
+
+- **`dart analyze`, not `flutter analyze`** — the analysis server crashes on some machines; the
+  Makefile and CI both use `dart analyze`.
+- Regenerate after touching `@riverpod`, `@freezed`, `@Envied`. **Generated code is committed** —
+  `make gen` and commit the diff; CI fails on a stale one. `env.g.dart` is the exception and stays
+  untracked (envied obfuscates, it does not encrypt).
+- A fresh clone needs `.env.dev` / `.env.staging` / `.env.prod` (copy `.env.example`) before codegen.
+
+## Git — propose, never execute
+
+**Never `git commit`, `git push` or `git tag` on your own.** Propose the exact commands and let the
+user run them. Staging/editing files is fine. Check `git status` first, and never `git add -A`.
+
+## Conventions (non-negotiable — don't re-derive)
+
+- **New feature**: `make feature NAME=<name>` then follow the **feature-flow** skill's order.
+  Never hand-create the folders.
+- **Layers**: `domain/` imports nothing (no flutter, no dio); `presentation/` reaches `data/` only
+  through providers; DTOs never leave `data/`.
+- **Network**: `ref.watch(apiClientProvider)`; repositories return `Result<T>` via `apiCall`;
+  errors are the sealed `ApiException`; user copy via `apiErrorMessagesProvider`.
+- **Providers**: `@riverpod` codegen; functional providers take `Ref`; generated name drops
+  `Notifier`; `@Riverpod(keepAlive: true)` only for app-lifetime state.
+- **Theme**: change `_brand` (`KitColors`) in `lib/app/app.dart`; `KitTheme.light(...).copyWith(...)`
+  for the rest. Never copy the kit's theme file in. `KitApp` runs edge-to-edge — a full-bleed page
+  still needs `SafeArea`.
+- **Secrets**: never commit `.env*` (except `.env.example`), `env.g.dart`, keystores,
+  `key.properties`, `google-services.json`, `GoogleService-Info.plist`.
+- **Do NOT** add `get_it`/`injectable` (Riverpod is the DI container), use `valueOrNull` (gone in
+  3.x), use `XxxRef` types (2.x), or add a package the kit already provides.
+
+## Bumping the kit
+
+Edit `ref:` in `pubspec.yaml` → `make get && make gen && make ci`. Read the kit's `CHANGELOG.md`
+for the target tag first; pre-1.0 a **minor** bump may be breaking. Keep it in its own commit.
+
+## Follow the skills (auto-applied)
+
+Four skills under `.claude/skills/` trigger on their `description` — complying with them is enough:
+
+- **feature-flow** — adding/extending a feature: which files, in which order, what goes where.
+- **flutter-arch** — architecture and conventions (shared verbatim with the kit).
+- **flutter-testing** — tests: fakes, provider/widget setup, the Riverpod 3 traps (shared verbatim).
+- **git-flow** — branches, commits, PR checklist, tags.
+
+Need something the kit doesn't offer? Don't fork or copy kit code — ask flutter_kit for an extension
+point (its `kit-extension-point` skill describes the shape) and use a local implementation of the
+kit's *contract* until it lands.

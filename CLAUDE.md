@@ -32,6 +32,7 @@ Other apps depend on this. Correctness over cleverness.
 
 ```
 lib/flutter_kit.dart      the ONLY public surface (barrel)   docs/          architecture, network, state, theme, testing…
+bin/ + templates/         scaffold CLIs + app/feature templates (docs/scaffold.md)
 lib/analysis_options.yaml lint preset apps `include:`         example/       reference app (separate package)
 lib/src/app/              KitConfig · bootstrapKit · KitApp   test/          kit tests
 lib/src/network/          Dio stack · TokenStore · errors     scripts/       release.sh
@@ -40,6 +41,18 @@ lib/src/theme/  ui/       KitColors · KitTheme · AppSizes · shared widgets
 lib/src/models/           Result<T> · PaginatedState<T>
 lib/src/providers/        themeMode · appLifecycle
 ```
+
+## Scaffolding
+
+```bash
+make new-app NAME=camera_b2b ORG=vn.fpt   # new app  → ../camera_b2b (bin/scaffold.dart)
+make feature NAME=profile                 # inside an app (bin/new_feature.dart)
+```
+
+`bin/scaffold.dart` runs `flutter create` for `android/`+`ios/` and only overlays what the kit owns
+(`templates/app/`). `flutter-arch/SKILL.md` is shared **verbatim** with `templates/app/` — edit the
+kit copy, then `make sync-skill`; `make verify-skill` and CI fail on drift. A template change is not
+verified until a generated app passes its own `make ci` — see `docs/scaffold.md`.
 
 ## Verify — use these exact commands
 
@@ -105,13 +118,22 @@ Flutter `3.41.x` · Dart SDK `^3.7.0` · Riverpod `3.x`.
 - `example/.env.*` are gitignored; a fresh clone must create them (`API_BASE_URL=...`) or codegen
   fails. CI seeds them.
 - Re-tagging a published version poisons `pub` caches of apps pinning it — ship a new version.
-- Phase 2 (not built yet): a Dart scaffold CLI + `templates/` that generates a new app, shipping a
-  service-only `feature-flow` skill. Don't assume it exists.
+- **Riverpod 3 retries a throwing provider by default** (10×, 200ms→6.4s) — `bootstrapKit` turns
+  that off (`kitNoProviderRetry`) because `RetryInterceptor` owns retry where 5xx and 404 differ. A
+  bare `ProviderContainer` in a test still uses the default and will hang an error-path test: pass
+  `retry: (_, _) => null`. Reading `provider.future` also needs a live `container.listen`, or the
+  auto-dispose provider dies mid-load.
 
 ## Follow the skills (auto-applied)
 
-Two skills under `.claude/skills/` trigger on their `description` — **complying with them is enough;
-you don't need to read the docs**. Each owns one scope (don't cross):
+Five skills under `.claude/skills/` trigger on their `description` — **complying with them is
+enough; you don't need to read the docs**. Each owns one scope (don't cross):
 
-- **flutter-arch** — where code belongs, layer rules, Riverpod/network/theme conventions, kit-vs-app.
+- **flutter-arch** — where code belongs, layer rules, Riverpod/network/theme conventions.
+- **flutter-testing** — writing/fixing tests, fakes, the Riverpod 3 traps that hang a test.
+- **kit-extension-point** — an app needs something the kit lacks: contract + default + provider.
+- **kit-scaffold** — `bin/` generators and `templates/**` (kit-only).
 - **git-flow** — branches, commits, PR checklist, SemVer tag + CHANGELOG.
+
+`flutter-arch` and `flutter-testing` ship verbatim into generated apps (`make sync-skill`);
+`kit-scaffold` and `kit-extension-point` are kit-only.

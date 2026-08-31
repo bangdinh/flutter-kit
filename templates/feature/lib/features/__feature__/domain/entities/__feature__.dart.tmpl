@@ -1,0 +1,13 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part '__feature__.freezed.dart';
+
+/// Domain entity — what the app means by a __title__.
+///
+/// Pure Dart: no JSON, no Flutter, no Dio. The wire format is the server's
+/// decision and belongs in `data/models/__feature___model.dart`.
+@freezed
+abstract class __Feature__ with _$__Feature__ {
+  const factory __Feature__({required String id, required String name}) =
+      ___Feature__;
+}

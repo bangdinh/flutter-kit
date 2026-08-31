@@ -49,11 +49,20 @@ class ApiErrorMessages {
 @Riverpod(keepAlive: true)
 ApiErrorMessages apiErrorMessages(Ref ref) => const ApiErrorMessages();
 
-/// Kit default wording — English, deliberately generic.
+/// Kit default wording — English, deliberately generic. Never shows a trace id
+/// or a server `detail` to the user; those go to logs.
 String apiExceptionToMessage(ApiException exception) {
   return switch (exception) {
     UnauthorizedException() => 'Session expired. Please sign in again.',
+    ForbiddenException() => "You don't have permission to do that.",
     NotFoundException() => 'The requested resource was not found.',
+    ValidationException(:final fieldErrors) =>
+      fieldErrors.isEmpty
+          ? 'Some of the information provided is invalid.'
+          : fieldErrors.first.reason,
+    ConflictException() =>
+      'That conflicts with the current state. Refresh and try again.',
+    RateLimitedException() => 'Too many requests. Please wait a moment.',
     TimeoutException() => 'Request timed out. Please try again.',
     NetworkException() => 'No internet connection. Check your network.',
     ServerException(:final statusCode) =>

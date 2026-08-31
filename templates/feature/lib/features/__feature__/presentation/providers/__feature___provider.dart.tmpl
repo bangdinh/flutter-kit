@@ -1,0 +1,39 @@
+import 'package:flutter_kit/flutter_kit.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../data/repositories/__feature___repository_impl.dart';
+import '../../domain/entities/__feature__.dart';
+
+part '__feature___provider.g.dart';
+
+/// Cursor-paginated list state. Entities in, entities out — no DTO, no `Map`,
+/// no Dio above the repository.
+///
+/// `PaginatedNotifier` handles first load, load-more, refresh, the in-flight
+/// guard and error capture; you only supply one page.
+///
+/// The generated provider drops the `Notifier` suffix:
+/// `__Feature__ListNotifier` → `__feature__ListProvider`.
+@riverpod
+class __Feature__ListNotifier extends _$__Feature__ListNotifier
+    with PaginatedNotifier<__Feature__> {
+  @override
+  PaginatedState<__Feature__> build() {
+    loadFirstPage();
+    return const PaginatedState();
+  }
+
+  @override
+  Future<ApiPage<__Feature__>> fetchPage(String? cursor) async {
+    final result = await ref
+        .read(__feature__RepositoryProvider)
+        .fetchPage(cursor: cursor, limit: pageSize);
+
+    return switch (result) {
+      Success(:final data) => data,
+      // PaginatedNotifier catches this and puts it in state.error, which
+      // PaginatedListView renders.
+      Failure(:final exception) => throw exception,
+    };
+  }
+}

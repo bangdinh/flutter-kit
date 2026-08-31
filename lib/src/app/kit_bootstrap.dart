@@ -10,6 +10,15 @@ import '../logging/app_logger.dart';
 import '../storage/local_storage.dart';
 import 'kit_config.dart';
 
+/// Riverpod's retry signature: return the delay before the next attempt, or
+/// `null` to stop retrying. Structurally identical to Riverpod's own `Retry`,
+/// which the package does not export.
+typedef ProviderRetry = Duration? Function(int retryCount, Object error);
+
+/// Never retry at the provider level — the kit's default. See
+/// `bootstrapKit`'s `providerRetry`.
+Duration? kitNoProviderRetry(int retryCount, Object error) => null;
+
 /// Boots a kit-based app: binding, system UI, async dependencies, then
 /// `runApp` inside a `ProviderScope`.
 ///
@@ -43,6 +52,19 @@ Future<void> bootstrapKit({
 
   /// Called for every uncaught framework error. Defaults to logging it.
   void Function(Object error, StackTrace stackTrace)? onError,
+
+  /// Riverpod's provider-level retry policy.
+  ///
+  /// Defaults to [kitNoProviderRetry] — **off**. Riverpod 3 otherwise retries
+  /// any provider whose build throws a non-`Error`, up to 10 times with
+  /// exponential backoff, which for this kit is the wrong layer: the Dio
+  /// [RetryInterceptor] already retries transient failures where a timeout or a
+  /// 5xx can be told apart from a 404, and it does so before a `Result` is ever
+  /// produced. Leaving both on means a `NotFoundException` is retried for tens
+  /// of seconds while the UI sits in `AsyncLoading`.
+  ///
+  /// Pass Riverpod's `ProviderContainer.defaultRetry` (or your own) to opt in.
+  ProviderRetry? providerRetry = kitNoProviderRetry,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -73,6 +95,7 @@ Future<void> bootstrapKit({
 
   runApp(
     ProviderScope(
+      retry: providerRetry,
       overrides: [
         kitConfigProvider.overrideWithValue(config),
         localStorageProvider.overrideWithValue(sharedPreferences),

@@ -28,12 +28,13 @@ export 'src/models/result.dart';
 // --- Network ---------------------------------------------------------------
 export 'src/network/api_client.dart';
 export 'src/network/errors/api_exception.dart';
+export 'src/network/errors/problem_detail.dart';
 export 'src/network/helpers/api_error_handler.dart';
 export 'src/network/helpers/paginated_notifier.dart';
 export 'src/network/interceptors/auth_interceptor.dart';
 export 'src/network/interceptors/error_interceptor.dart';
 export 'src/network/interceptors/retry_interceptor.dart';
-export 'src/network/models/api_response.dart';
+export 'src/network/models/api_envelope.dart';
 export 'src/network/token_store.dart';
 
 // --- Providers -------------------------------------------------------------

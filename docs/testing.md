@@ -14,6 +14,17 @@ addTearDown(container.dispose);
 expect(container.read(apiClientProvider).options.baseUrl, 'https://x');
 ```
 
+Two traps in this snippet, both Riverpod 3 defaults:
+
+- **Retry** — a bare `ProviderContainer` retries a throwing provider 10 times with backoff, so an
+  error-path test hangs to the timeout. Pass `retry: (_, _) => null`.
+- **Auto-dispose** — reading `provider.future` alone opens a subscription that closes immediately
+  and the provider is disposed mid-load ("disposed during loading state"). Hold a listener open:
+  `final sub = container.listen(provider, (_, _) {}); addTearDown(sub.close);`
+
+Awaiting `.future` surfaces your own exception; a *synchronous* `container.read` hands you a
+`ProviderException` wrapping it. Assert accordingly.
+
 `Override` and `ProviderException` are not in `flutter_riverpod.dart`'s export list — import
 `package:flutter_riverpod/misc.dart show Override, ProviderException` when you need to name them.
 

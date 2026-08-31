@@ -1,0 +1,51 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_kit/flutter_kit.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../models/__feature___model.dart';
+
+part '__feature___remote_data_source.g.dart';
+
+/// URLs and JSON only. Error mapping and persistence belong to the repository.
+///
+/// Dio comes from the kit (`apiClientProvider`) so this call inherits auth,
+/// retry and the error contract — never construct `Dio()` here.
+@riverpod
+__Feature__RemoteDataSource __feature__RemoteDataSource(Ref ref) {
+  return __Feature__RemoteDataSource(dio: ref.watch(apiClientProvider));
+}
+
+class __Feature__RemoteDataSource {
+  __Feature__RemoteDataSource({required this.dio});
+
+  // TODO(__feature__): the scaffold guessed this path — set the real endpoint.
+  static const _path = '/__features__';
+
+  final Dio dio;
+
+  /// One page of __title__. `cursor` is opaque — pass back what the previous
+  /// page returned in `page.nextCursor`, never a page number.
+  Future<ApiPage<__Feature__Model>> fetchPage({
+    String? cursor,
+    int limit = 20,
+  }) async {
+    final response = await dio.get<Map<String, dynamic>>(
+      _path,
+      queryParameters: {'limit': limit, if (cursor != null) 'cursor': cursor},
+    );
+    // ApiPage unwraps {"data": [...], "page": {...}} — the gokit collection
+    // envelope. Never index into response.data['data'] by hand.
+    return ApiPage<__Feature__Model>.fromJson(
+      response.data!,
+      (json) => __Feature__Model.fromJson(json! as Map<String, dynamic>),
+    );
+  }
+
+  Future<__Feature__Model> fetchById(String id) async {
+    final response = await dio.get<Map<String, dynamic>>('$_path/$id');
+    return ApiData<__Feature__Model>.fromJson(
+      response.data!,
+      (json) => __Feature__Model.fromJson(json! as Map<String, dynamic>),
+    ).data;
+  }
+}

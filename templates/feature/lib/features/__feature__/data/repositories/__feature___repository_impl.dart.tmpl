@@ -1,0 +1,45 @@
+import 'package:flutter_kit/flutter_kit.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../domain/entities/__feature__.dart';
+import '../../domain/repositories/__feature___repository.dart';
+import '../datasources/__feature___remote_data_source.dart';
+
+part '__feature___repository_impl.g.dart';
+
+/// Override this provider with a fake in tests — see
+/// `test/features/__feature__/data/fake___feature___repository.dart`.
+@riverpod
+__Feature__Repository __feature__Repository(Ref ref) {
+  return __Feature__RepositoryImpl(
+    remoteDataSource: ref.watch(__feature__RemoteDataSourceProvider),
+  );
+}
+
+class __Feature__RepositoryImpl implements __Feature__Repository {
+  __Feature__RepositoryImpl({required this.remoteDataSource});
+
+  final __Feature__RemoteDataSource remoteDataSource;
+
+  /// `apiCall` turns any `DioException`/`ApiException` into
+  /// `Result.failure(ApiException)`, so nothing above this layer sees Dio.
+  @override
+  Future<Result<ApiPage<__Feature__>>> fetchPage({
+    String? cursor,
+    int limit = 20,
+  }) {
+    return apiCall(() async {
+      final page = await remoteDataSource.fetchPage(cursor: cursor, limit: limit);
+      // DTOs stop here: the page keeps its meta, the items become entities.
+      return ApiPage(
+        items: page.items.map((model) => model.toEntity()).toList(),
+        page: page.page,
+      );
+    });
+  }
+
+  @override
+  Future<Result<__Feature__>> fetchById(String id) {
+    return apiCall(() async => (await remoteDataSource.fetchById(id)).toEntity());
+  }
+}

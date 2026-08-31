@@ -5,3 +5,6 @@ include: package:flutter_kit/analysis_options.yaml
 analyzer:
   exclude:
     - "example/**"
+    # Templates are rendered, not compiled: `.tmpl` sources reference
+    # package:__name__ and would never resolve here.
+    - "templates/**"

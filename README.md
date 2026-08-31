@@ -8,7 +8,7 @@ The kit owns the skeleton. Your app owns its rules.
 |---|---|
 | `bootstrapKit` · `KitApp` · `KitConfig` | environment resolution, routes, features |
 | Dio stack: auth → retry → error mapping | auth policy (`TokenStore`, refresh, logout) |
-| `Result<T>` · sealed `ApiException` · pagination | brand palette, copy, product decisions |
+| the b2b-gokit contract: `data` envelope, cursor pages, RFC 9457 errors | brand palette, copy, product decisions |
 | `KitTheme`/`KitColors` · `AppSizes` · shared widgets | anything a second app wouldn't want verbatim |
 | lint preset (`package:flutter_kit/analysis_options.yaml`) | |
 
@@ -50,6 +50,18 @@ class MyApp extends ConsumerWidget {
 
 Full walkthrough: [docs/getting-started.md](docs/getting-started.md).
 
+## Start an app from it
+
+```bash
+make new-app NAME=camera_b2b ORG=vn.fpt   # → ../camera_b2b, kit pinned to the latest tag
+cd ../camera_b2b && cp .env.example .env.dev
+make gen && make ci
+make feature NAME=profile                 # scaffold a feature, from the kit
+```
+
+The generated app ships its own Makefile, CI, docs and the `feature-flow` / `flutter-arch` /
+`git-flow` skills. Details: [docs/scaffold.md](docs/scaffold.md).
+
 ## Layout
 
 ```
@@ -61,6 +73,8 @@ lib/src/storage/            SharedPreferences + secure storage providers
 lib/src/models/             Result<T> · PaginatedState<T>
 lib/src/theme/  ui/         KitColors · KitTheme · AppSizes · shared widgets
 lib/src/providers/          themeMode (persisted) · appLifecycle
+bin/                        scaffold.dart (new app) · new_feature.dart (new feature)
+templates/                  app/ and feature/ templates the generators render
 example/                    reference app consuming the kit by path (built in CI)
 docs/                       architecture · network · state · theme · testing · versioning · ADRs
 ```
@@ -85,6 +99,8 @@ Release: `make release VERSION=vX.Y.Z` (see [docs/versioning.md](docs/versioning
 | [getting-started.md](docs/getting-started.md) | standing up a new app |
 | [architecture.md](docs/architecture.md) | deciding where code belongs |
 | [extension-points.md](docs/extension-points.md) | the kit doesn't do what you need |
+| [scaffold.md](docs/scaffold.md) | generating an app or a feature |
+| [api-contract.md](docs/api-contract.md) | the b2b-gokit wire contract the kit implements |
 | [network.md](docs/network.md) | API calls, errors, tokens, pagination |
 | [state.md](docs/state.md) | Riverpod 3.x rules, bootstrap, lifecycle |
 | [theme.md](docs/theme.md) | rebranding, spacing, shared widgets |

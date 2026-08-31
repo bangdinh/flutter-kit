@@ -1,0 +1,3 @@
+# Lints come from the kit, so every app on flutter_kit is held to the same bar.
+# Add app-specific rules below — do not copy the kit's rule list in here.
+include: package:flutter_kit/analysis_options.yaml

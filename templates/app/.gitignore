@@ -1,0 +1,60 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Generated code IS committed: it makes a bad build traceable to a diff instead
+# of to someone's local generator state, and keeps CI's staleness check honest.
+# Run `make gen` and commit the result.
+#
+# EXCEPTION: envied output. env.g.dart embeds the contents of .env.* as XOR'd
+# bytes — obfuscation is not encryption, so committing it would commit the very
+# values .env* is ignored to protect.
+**/env.g.dart
+
+# Environment — never commit these. Only .env.example belongs in git.
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Android
+**/android/.gradle/
+**/android/.kotlin/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+
+# iOS
+**/ios/Pods/
+**/ios/Podfile.lock
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.framework
+**/ios/Flutter/ephemeral/
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# Signing / service secrets — do NOT commit
+**/ios/Runner/GoogleService-Info.plist
+**/ios/firebase_app_id_file.json
+**/android/**/google-services.json
+**/android/key.properties
+*.jks
+*.keystore
+
+# Crash logs / coverage
+flutter_*.log
+coverage/

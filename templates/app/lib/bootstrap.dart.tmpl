@@ -1,0 +1,31 @@
+import 'package:flutter_kit/flutter_kit.dart';
+
+import 'app/app.dart';
+import 'app/env/app_env.dart';
+
+/// Wires **this app's rules** into the kit and starts it.
+///
+/// The kit owns the boot sequence (`bootstrapKit`); the app owns what goes into
+/// it — which environment, which auth policy, which provider overrides.
+Future<void> bootstrap({AppEnv env = AppEnv.dev}) {
+  return bootstrapKit(
+    config: env.toKitConfig(),
+    appBuilder: () => const __Name__App(),
+    overrides: [
+      // App rule: what happens when auth is definitively lost. Replace the log
+      // with your own routing/session teardown.
+      unauthorizedHandlerProvider.overrideWithValue(() {
+        AppLogger.w('Session lost — route to login');
+      }),
+
+      // App rule: refresh an expired token. Return true once a fresh token is
+      // stored and the failed request will be replayed automatically.
+      // tokenRefresherProvider.overrideWithValue(_refreshAccessToken),
+
+      // Other extension points — see the kit's docs/extension-points.md:
+      //   apiErrorMessagesProvider   localized error copy
+      //   extraInterceptorsProvider  tracing / tenant headers
+      //   tokenStoreProvider         a different credential store
+    ],
+  );
+}
