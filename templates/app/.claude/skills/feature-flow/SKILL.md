@@ -27,6 +27,9 @@ flutter_kit has the same one so a developer moving between them loses no time.
    Wire format only. `@JsonKey(name: 'snake_case')` maps the server's names; the entity keeps ours.
 5. **`data/datasources/<name>_remote_data_source.dart`** — URLs and JSON, nothing else. Dio comes
    from `ref.watch(apiClientProvider)` — never `Dio()`. Fix the endpoint the scaffold guessed.
+   Unwrap the response with `ApiData<T>.fromJson` / `ApiPage<T>.fromJson` — the API is b2b-gokit
+   (`{"data": ...}` + cursor `page`), so never index `response.data['data']` by hand and never
+   paginate by page number: `nextCursor` is opaque, `hasMore` is authoritative.
 6. **`data/repositories/<name>_repository_impl.dart`** — wraps every call in `apiCall(() async {...})`
    so failures become `Result.failure(ApiException)`. Persistence and mapping live here.
 7. **`presentation/providers/<name>_provider.dart`** — `@riverpod`. Mutations through
@@ -46,7 +49,10 @@ flutter_kit has the same one so a developer moving between them loses no time.
 
 - A widget importing a `*_remote_data_source.dart` is wrong — go through a provider.
 - A DTO leaking into `presentation/` is wrong — `toEntity()` at the repository boundary.
-- Error copy in a widget is wrong — `ref.read(apiErrorMessagesProvider).message(e)`.
+- Error copy in a widget is wrong — `ref.read(apiErrorMessagesProvider).message(e)`. Showing the
+  server's `detail` or `traceId` to a user is wrong too; log the trace id instead.
+- Branching on an HTTP status is wrong — switch on `ApiException`'s gokit `code`
+  (`CONFLICT` and `ALREADY_EXISTS` are both 409). Form errors: `ValidationException.reasonFor(field)`.
 - Business logic in a widget is wrong — it belongs in the notifier, where it can be tested.
 - No barrel file per feature. Imports inside a feature stay relative.
 

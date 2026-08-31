@@ -8,6 +8,19 @@ PATCH = compatible fix).
 
 ### Breaking
 
+- **The HTTP contract is now b2b-gokit's** (VMSN-STD-API-001 + RFC 9457), implemented once in the
+  kit — see `docs/api-contract.md`.
+  - `ApiResponse<T>` / `PaginatedResponse<T>` are gone. Success bodies are unwrapped with
+    `ApiData<T>` (`{"data": ...}`) and `ApiPage<T>` (`{"data": [...], "page": {...}}`). The old
+    `success`/`message`/`status` fields never existed in gokit responses.
+  - **Pagination moved from page numbers to opaque cursors.** `PaginatedState` drops
+    `page`/`totalPages` for `nextCursor`/`total`; `PaginatedNotifier.fetchPage(int page)` becomes
+    `fetchPage(String? cursor)` returning `ApiPage<T>`.
+  - `ApiException` subtypes are now driven by gokit's stable `code`, not by HTTP status, and carry
+    `code`, `title`, `traceId`. New subtypes — `ForbiddenException`, `ValidationException` (with
+    `fieldErrors`), `ConflictException`, `RateLimitedException` (with `retryAfter`) — make an
+    existing exhaustive `switch` fail to compile until the new cases are handled.
+
 - Restructured from an app template into a consumable **library**. Everything moved behind
   `lib/src/` and is reachable only through the `package:flutter_kit/flutter_kit.dart` barrel; the old
   `core/core.dart` and `shared/shared.dart` barrels are gone.
@@ -23,6 +36,13 @@ PATCH = compatible fix).
   `refreshToken` / `onUnauthorized` hooks instead of a `TODO`.
 
 ### Added
+
+- `ProblemDetail`, `FieldError` and `ApiErrorCode` (all 15 gokit codes). `ErrorInterceptor` parses
+  `application/problem+json`, keeps `traceId` (falling back to the `X-Request-Id` header) and logs
+  it, reads `Retry-After` for `RateLimitedException`, and degrades to a status-based mapping for a
+  body that isn't a problem or a code this kit predates — a new server code never breaks a shipped
+  app.
+- `ValidationException.reasonFor(field)` binds server field errors straight to form inputs.
 
 - **Scaffolding**: `bin/scaffold.dart` generates a new app (`make new-app NAME=… ORG=…`) — it runs
   `flutter create` for the platform folders and overlays `templates/app/`: pubspec with the kit

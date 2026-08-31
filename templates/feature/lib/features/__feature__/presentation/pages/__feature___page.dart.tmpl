@@ -2,48 +2,47 @@ import 'package:flutter/material.dart';
 import 'package:flutter_kit/flutter_kit.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/entities/__feature__.dart';
 import '../providers/__feature___provider.dart';
 
 /// Screen for __title__.
 ///
-/// `AsyncValueWidget` covers loading/error/data — don't hand-roll those three
-/// branches. Wording for errors comes from the kit's message provider.
+/// `PaginatedListView` owns the scroll threshold, the load-more spinner,
+/// pull-to-refresh and the empty state — don't hand-roll those.
 class __Feature__Page extends ConsumerWidget {
   const __Feature__Page({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final items = ref.watch(__feature__ListProvider);
+    final state = ref.watch(__feature__ListProvider);
+    final notifier = ref.read(__feature__ListProvider.notifier);
+    final error = state.error;
 
     return Scaffold(
       appBar: AppBar(title: const Text('__title__')),
-      body: RefreshIndicator(
-        onRefresh: () =>
-            ref.read(__feature__ListProvider.notifier).refresh(),
-        child: AsyncValueWidget(
-          value: items,
-          error: (error, _) => Center(
-            child: Padding(
-              padding: AppSizes.pageAll,
-              child: Text(
-                error is ApiException
-                    ? ref.read(apiErrorMessagesProvider).message(error)
-                    : error.toString(),
-                textAlign: TextAlign.center,
+      body: error != null && state.isEmpty
+          ? Center(
+              child: Padding(
+                padding: AppSizes.pageAll,
+                child: Text(
+                  // User-facing wording comes from the kit, not from the
+                  // server's `detail` — and never includes the trace id.
+                  error is ApiException
+                      ? ref.read(apiErrorMessagesProvider).message(error)
+                      : error.toString(),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          : PaginatedListView<__Feature__>(
+              state: state,
+              onLoadMore: notifier.loadNextPage,
+              onRefresh: notifier.refresh,
+              itemBuilder: (context, item, index) => ListTile(
+                title: Text(item.name),
+                subtitle: Text(item.id),
               ),
             ),
-          ),
-          data: (data) => ListView.separated(
-            padding: AppSizes.pageAll,
-            itemCount: data.length,
-            separatorBuilder: (_, _) => AppSizes.gap12,
-            itemBuilder: (context, index) => ListTile(
-              title: Text(data[index].name),
-              subtitle: Text(data[index].id),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

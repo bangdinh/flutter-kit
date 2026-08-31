@@ -1,78 +1,87 @@
 import 'dart:async';
 
 import '../../models/paginated_state.dart';
-import '../models/api_response.dart';
+import '../models/api_envelope.dart';
 
-/// Base mixin for paginated list providers.
+/// Cursor pagination for a Riverpod notifier, matching gokit's `page` envelope.
 ///
-/// Subclass this in your feature's provider to get pagination for free.
+/// Implement [fetchPage] and the mixin handles first load, load-more, refresh,
+/// the in-flight guard and error capture:
 ///
-/// Usage:
-///   ```dart
-///   @riverpod
-///   class ArticleList extends _$ArticleList
-///       with PaginatedNotifier<Article> {
+/// ```dart
+/// @riverpod
+/// class ArticleList extends _$ArticleList with PaginatedNotifier<Article> {
+///   @override
+///   Future<ApiPage<Article>> fetchPage(String? cursor) =>
+///       ref.read(articleRepositoryProvider).getArticles(
+///             cursor: cursor,
+///             limit: pageSize,
+///           );
 ///
-///     @override
-///     int get pageSize => 20;
-///
-///     @override
-///     Future<PaginatedResponse<Article>> fetchPage(int page) async {
-///       final repo = ref.read(articleRepositoryProvider);
-///       return repo.getArticles(page: page, limit: pageSize);
-///     }
-///
-///     @override
-///     PaginatedState<Article> build() {
-///       loadFirstPage();
-///       return const PaginatedState();
-///     }
+///   @override
+///   PaginatedState<Article> build() {
+///     loadFirstPage();
+///     return const PaginatedState();
 ///   }
-///   ```
+/// }
+/// ```
+///
+/// Pass `cursor` straight through to the API as an opaque value — never parse,
+/// increment or persist it.
 mixin PaginatedNotifier<T> {
-  /// Riverpod 3.x: state is provided by the generated `_$ClassName`
-  /// base class. The mixin accesses it through these abstract members.
+  /// Provided by the generated `_$ClassName` base class.
   PaginatedState<T> get state;
   set state(PaginatedState<T> value);
 
+  /// Requested page size. The server may clamp it; trust `page.limit` in the
+  /// response over this value.
   int get pageSize => 20;
 
-  /// Implement this to fetch a page from your data source.
-  Future<PaginatedResponse<T>> fetchPage(int page);
+  /// Fetches one page. `cursor` is `null` for the first page.
+  Future<ApiPage<T>> fetchPage(String? cursor);
 
-  /// Loads the first page. Call from [build].
+  /// Kicks off the first load. Call from `build()`.
   void loadFirstPage() {
-    // Use Future.microtask to avoid modifying state during build
-    Future.microtask(() => _loadPage(1, isRefresh: true));
+    // Deferred: `build()` must not mutate state while it is running.
+    Future.microtask(() => _load(null, isRefresh: true));
   }
 
-  /// Loads the next page. Call from scroll listener.
+  /// Loads the next page. Safe to call from a scroll listener — it no-ops while
+  /// a load is in flight, at the end of the list, or with no cursor to advance.
   Future<void> loadNextPage() async {
     if (state.isLoadingMore || !state.hasMore) return;
-    await _loadPage(state.page + 1);
+    final cursor = state.nextCursor;
+    if (cursor == null) return;
+    await _load(cursor);
   }
 
-  /// Refreshes from page 1.
+  /// Discards everything and reloads from the first page.
   Future<void> refresh() async {
     state = state.reset();
-    await _loadPage(1, isRefresh: true);
+    await _load(null, isRefresh: true);
   }
 
-  Future<void> _loadPage(int page, {bool isRefresh = false}) async {
+  Future<void> _load(String? cursor, {bool isRefresh = false}) async {
     state = state.copyWith(isLoadingMore: !isRefresh, clearError: true);
 
     try {
-      final response = await fetchPage(page);
+      final page = await fetchPage(cursor);
       if (isRefresh) {
         state = PaginatedState<T>(
-          items: response.items,
-          page: page,
-          hasMore: response.hasMore,
+          items: page.items,
+          nextCursor: page.nextCursor,
+          hasMore: page.hasMore,
+          total: page.page.total,
         );
       } else {
-        state = state.appendPage(response.items, hasMore: response.hasMore);
+        state = state.appendPage(
+          page.items,
+          hasMore: page.hasMore,
+          nextCursor: page.nextCursor,
+          total: page.page.total,
+        );
       }
-    } catch (e) {
+    } on Object catch (e) {
       state = state.copyWith(isLoadingMore: false, error: e);
     }
   }

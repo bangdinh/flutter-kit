@@ -4,19 +4,23 @@ import 'package:dio/dio.dart';
 
 import '../../logging/app_logger.dart';
 import '../errors/api_exception.dart';
+import '../errors/problem_detail.dart';
 
-/// Maps [DioException] to domain [ApiException].
+/// Header a gokit service echoes the correlation id on when the problem body
+/// carries none (set by the gateway / `X-Request-Id` middleware).
+const _requestIdHeader = 'x-request-id';
+
+/// Translates transport failures into the kit's [ApiException] contract.
 ///
-/// Follows Andrea's tip #29: Domain-driven exception handling
-/// — the presentation layer never sees raw Dio errors.
+/// A gokit error response is RFC 9457 `application/problem+json`; this is where
+/// it is parsed, so nothing above ever touches `DioException` or a raw body.
 class ErrorInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    final apiException = _mapException(err);
     handler.reject(
       DioException(
         requestOptions: err.requestOptions,
-        error: apiException,
+        error: _mapException(err),
         type: err.type,
         response: err.response,
       ),
@@ -24,10 +28,8 @@ class ErrorInterceptor extends Interceptor {
   }
 
   ApiException _mapException(DioException err) {
-    // Already wrapped (e.g., by AuthInterceptor)
-    if (err.error is ApiException) {
-      return err.error as ApiException;
-    }
+    // Already classified upstream (AuthInterceptor rejects a 401 itself).
+    if (err.error is ApiException) return err.error! as ApiException;
 
     switch (err.type) {
       case DioExceptionType.connectionTimeout:
@@ -39,15 +41,13 @@ class ErrorInterceptor extends Interceptor {
         return const NetworkException();
 
       case DioExceptionType.badResponse:
-        return _mapStatusCode(err.response);
+        return _mapResponse(err.response);
 
       case DioExceptionType.cancel:
         return const UnknownApiException(message: 'Request cancelled');
 
       default:
-        if (err.error is SocketException) {
-          return const NetworkException();
-        }
+        if (err.error is SocketException) return const NetworkException();
         AppLogger.e(
           'Unhandled DioException',
           error: err,
@@ -57,29 +57,70 @@ class ErrorInterceptor extends Interceptor {
     }
   }
 
-  ApiException _mapStatusCode(Response? response) {
-    final statusCode = response?.statusCode;
+  ApiException _mapResponse(Response<dynamic>? response) {
+    final status = response?.statusCode;
     final data = response?.data;
-    final message =
-        data is Map<String, dynamic>
-            ? (data['message'] as String? ?? data['error'] as String?)
-            : null;
+    final retryAfter = _retryAfter(response);
 
-    if (statusCode == 401) {
-      return UnauthorizedException(message: message);
+    if (data is Map<String, dynamic>) {
+      final problem = ProblemDetail.fromJson(data, fallbackStatus: status);
+
+      // A body that is JSON but not a problem (a proxy's `{"error": "..."}`,
+      // an HTML-ish gateway page parsed loosely) carries no code and no title;
+      // fall back to the status rather than inventing an error type.
+      final isProblem =
+          problem.code != ApiErrorCode.unknown ||
+          problem.title.isNotEmpty ||
+          problem.detail != null;
+
+      if (isProblem) {
+        final exception = apiExceptionFromProblem(
+          problem.traceId == null
+              ? _withTraceId(problem, _headerTraceId(response))
+              : problem,
+          retryAfter: retryAfter,
+        );
+        if (exception.traceId != null) {
+          AppLogger.w(
+            '${exception.code.wireValue} ${status ?? ''} '
+            '${response?.requestOptions.uri} trace=${exception.traceId}',
+            tag: 'ErrorInterceptor',
+          );
+        }
+        return exception;
+      }
     }
-    if (statusCode == 404) {
-      return NotFoundException(message: message);
-    }
-    if (statusCode != null && statusCode >= 500 && statusCode < 600) {
-      return ServerException(
-        statusCode: statusCode,
-        message: message ?? 'Server error',
-      );
-    }
-    return ServerException(
-      statusCode: statusCode,
-      message: message ?? 'Request failed',
+
+    return apiExceptionFromProblem(
+      ProblemDetail(
+        status: status ?? 0,
+        code: ApiErrorCode.unknown,
+        traceId: _headerTraceId(response),
+      ),
+      retryAfter: retryAfter,
     );
+  }
+
+  ProblemDetail _withTraceId(ProblemDetail problem, String? traceId) {
+    if (traceId == null) return problem;
+    return ProblemDetail(
+      type: problem.type,
+      title: problem.title,
+      status: problem.status,
+      code: problem.code,
+      detail: problem.detail,
+      traceId: traceId,
+      fieldErrors: problem.fieldErrors,
+    );
+  }
+
+  String? _headerTraceId(Response<dynamic>? response) =>
+      response?.headers.value(_requestIdHeader);
+
+  /// `Retry-After` in seconds (the delta-seconds form gokit's rate limiter uses).
+  Duration? _retryAfter(Response<dynamic>? response) {
+    final raw = response?.headers.value('retry-after');
+    final seconds = raw == null ? null : int.tryParse(raw);
+    return seconds == null ? null : Duration(seconds: seconds);
   }
 }

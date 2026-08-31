@@ -45,13 +45,22 @@ features/<name>/
 - Datasources own URLs + JSON only. Repositories own error mapping (`apiCall`) and persistence.
 - No barrel file per feature. The kit's `flutter_kit.dart` is the only barrel.
 
-## Network (kit owns the stack)
+## Network — the kit owns the stack **and** the b2b-gokit contract
 
 - Get Dio from `ref.watch(apiClientProvider)` — never `Dio()`. Base URL/timeouts/headers come
   from `KitConfig`; don't set them per call.
+- **Unwrap with `ApiData` / `ApiPage`**, never `response.data['data']` by hand. Success is
+  `{"data": ...}` (+ `page` for collections); there is no `success`/`message`/`status` field.
+- **Pagination is by opaque cursor**, not page number: `fetchPage(String? cursor)` →
+  `ApiPage<T>`, echo `nextCursor` back untouched, trust `hasMore` (a short page ≠ the end).
+  `total` is optional — never require it in UI.
 - Repositories return `Result<T>` via `apiCall(() async {...})`; presentation never sees
-  `DioException`. Errors reach code as `ApiException` subtypes (sealed — `switch` is exhaustive).
-- User-facing wording: `ref.read(apiErrorMessagesProvider).message(e)`, not a hand-written string.
+  `DioException`. Errors arrive as sealed `ApiException` subtypes carrying gokit's stable
+  `code`, plus `traceId`.
+- **Switch on `code`, not on `status`** — `CONFLICT` and `ALREADY_EXISTS` are both 409.
+- User-facing wording: `ref.read(apiErrorMessagesProvider).message(e)`, not a hand-written string,
+  and never the server's `detail` or `traceId`. Log the trace id; show it to no one.
+- Form errors: `ValidationException.reasonFor('email')` — the server's `errors[]`.
 - Need a header/tracing/tenant rule? Override `extraInterceptorsProvider`. Don't fork the kit stack.
 - Auth: implement `TokenStore` / override `tokenRefresherProvider` / `unauthorizedHandlerProvider`.
   Never read secure storage from a widget or a datasource.

@@ -7,19 +7,27 @@ import 'package:flutter_kit/flutter_kit.dart';
 /// Tests override `__feature__RepositoryProvider` with this — no HTTP, no
 /// server, no timing. Set [failure] to exercise the error path.
 class Fake__Feature__Repository implements __Feature__Repository {
-  Fake__Feature__Repository({
-    List<__Feature__>? items,
-    this.failure,
-  }) : items = items ?? const [__Feature__(id: '1', name: 'First')];
+  Fake__Feature__Repository({List<__Feature__>? items, this.failure})
+      : items = items ?? const [__Feature__(id: '1', name: 'First')];
 
   final List<__Feature__> items;
   final ApiException? failure;
 
+  /// Cursors this fake was asked for, in order — assert on it to prove the
+  /// screen actually paginates instead of refetching page one.
+  final List<String?> requestedCursors = [];
+
   @override
-  Future<Result<List<__Feature__>>> fetchAll() async {
+  Future<Result<ApiPage<__Feature__>>> fetchPage({
+    String? cursor,
+    int limit = 20,
+  }) async {
+    requestedCursors.add(cursor);
     final error = failure;
     if (error != null) return Result.failure(error);
-    return Result.success(items);
+    return Result.success(
+      ApiPage(items: items, page: PageMeta(limit: limit, hasMore: false)),
+    );
   }
 
   @override

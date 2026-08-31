@@ -20,8 +20,8 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    // Reading `.future` alone opens a subscription that closes immediately, and
-    // an auto-dispose provider is then disposed mid-load. Hold one open.
+    // Hold a listener open: an auto-dispose provider read once would be
+    // disposed mid-load.
     final subscription = container.listen(__feature__ListProvider, (_, _) {});
     addTearDown(subscription.close);
 
@@ -29,29 +29,31 @@ void main() {
   }
 
   group('__feature__ListProvider', () {
-    test('exposes the repository items', () async {
-      final container = containerWith(
-        Fake__Feature__Repository(
-          items: const [__Feature__(id: '7', name: 'Seven')],
-        ),
+    test('loads the first page with no cursor', () async {
+      final repository = Fake__Feature__Repository(
+        items: const [__Feature__(id: '7', name: 'Seven')],
       );
+      final container = containerWith(repository);
 
-      final items = await container.read(__feature__ListProvider.future);
+      // loadFirstPage() is deferred to a microtask by the mixin.
+      await Future<void>.delayed(Duration.zero);
 
-      expect(items.single.name, 'Seven');
+      final state = container.read(__feature__ListProvider);
+      expect(state.items.single.name, 'Seven');
+      expect(state.isLoadingMore, isFalse);
+      expect(repository.requestedCursors, [null]);
     });
 
-    test('surfaces a repository failure as an error state', () async {
+    test('puts a repository failure in state.error', () async {
       final container = containerWith(
         Fake__Feature__Repository(failure: const NotFoundException()),
       );
 
-      // Awaiting `.future` surfaces the ApiException itself. (A *synchronous*
-      // provider read would hand you a ProviderException wrapping it instead.)
-      await expectLater(
-        container.read(__feature__ListProvider.future),
-        throwsA(isA<NotFoundException>()),
-      );
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(__feature__ListProvider);
+      expect(state.error, isA<NotFoundException>());
+      expect(state.items, isEmpty);
     });
   });
 }

@@ -3,61 +3,70 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('PaginatedState', () {
-    test('initial state has sensible defaults', () {
+    test('starts empty but willing to load', () {
       const state = PaginatedState<String>();
 
       expect(state.items, isEmpty);
-      expect(state.page, 1);
-      expect(state.isLoadingMore, isFalse);
-      expect(state.hasMore, isTrue);
-      expect(state.error, isNull);
       expect(state.isEmpty, isTrue);
+      expect(state.nextCursor, isNull);
+      expect(state.isLoadingMore, isFalse);
+      expect(
+        state.hasMore,
+        isTrue,
+        reason: 'the first load must be allowed before the server has spoken',
+      );
     });
 
-    test('appendPage adds items and increments page', () {
-      const state = PaginatedState<String>(items: ['a', 'b'], page: 1);
+    test('appendPage adds items and advances the cursor', () {
+      const state = PaginatedState<String>(items: ['a'], nextCursor: 'c1');
 
-      final next = state.appendPage(['c', 'd'], hasMore: true);
+      final next = state.appendPage(['b'], hasMore: true, nextCursor: 'c2');
 
-      expect(next.items, ['a', 'b', 'c', 'd']);
-      expect(next.page, 2);
+      expect(next.items, ['a', 'b']);
+      expect(next.nextCursor, 'c2');
       expect(next.hasMore, isTrue);
       expect(next.isLoadingMore, isFalse);
     });
 
-    test('appendPage with hasMore=false marks end', () {
-      const state = PaginatedState<int>(items: [1], page: 1);
-      final next = state.appendPage([2], hasMore: false);
+    test('the last page clears hasMore and the cursor', () {
+      const state = PaginatedState<String>(items: ['a'], nextCursor: 'c1');
+
+      final next = state.appendPage(['b'], hasMore: false);
 
       expect(next.hasMore, isFalse);
-      expect(next.items, [1, 2]);
+      expect(next.nextCursor, isNull);
     });
 
-    test('reset returns to initial state', () {
-      const state = PaginatedState<int>(
-        items: [1, 2, 3],
-        page: 3,
+    test('keeps total across pages when the server sent one', () {
+      const state = PaginatedState<String>(items: ['a'], total: 3);
+
+      final next = state.appendPage(['b'], hasMore: false);
+
+      expect(next.total, 3);
+    });
+
+    test('reset returns to the initial state', () {
+      const state = PaginatedState<String>(
+        items: ['a'],
+        nextCursor: 'c1',
         hasMore: false,
+        error: 'boom',
       );
 
       final reset = state.reset();
 
       expect(reset.items, isEmpty);
-      expect(reset.page, 1);
+      expect(reset.nextCursor, isNull);
       expect(reset.hasMore, isTrue);
+      expect(reset.error, isNull);
     });
 
-    test('copyWith clearError removes error', () {
-      final state = PaginatedState<int>(
-        items: const [1],
-        error: Exception('fail'),
-      );
+    test('copyWith clears the error and the cursor on request', () {
+      const state = PaginatedState<String>(nextCursor: 'c1', error: 'boom');
 
-      expect(state.error, isNotNull);
-
-      final cleared = state.copyWith(clearError: true);
-      expect(cleared.error, isNull);
-      expect(cleared.items, [1]);
+      expect(state.copyWith(clearError: true).error, isNull);
+      expect(state.copyWith(clearCursor: true).nextCursor, isNull);
+      expect(state.copyWith(isLoadingMore: true).nextCursor, 'c1');
     });
   });
 }

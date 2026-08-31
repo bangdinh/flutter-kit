@@ -20,14 +20,20 @@ Never construct `Dio()` yourself: you'd lose auth, retry and the error contract 
 
 ## Datasource → repository → provider
 
+The wire format is [the gokit contract](api-contract.md) — `{"data": ...}` on success, RFC 9457
+problem details on failure. Unwrap with `ApiData` / `ApiPage`, never by hand:
+
 ```dart
 // data/datasources/ — URLs and JSON only
 Future<UserModel> getProfile() async {
   final response = await dio.get<Map<String, dynamic>>('/auth/profile');
-  return UserModel.fromJson(response.data!['data']! as Map<String, dynamic>);
+  return ApiData<UserModel>.fromJson(
+    response.data!,
+    (json) => UserModel.fromJson(json! as Map<String, dynamic>),
+  ).data;
 }
 
-// data/repositories/ — errors become Result, tokens get persisted
+// data/repositories/ — errors become Result, DTOs become entities
 Future<Result<User>> getProfile() =>
     apiCall(() async => (await remote.getProfile()).toEntity());
 ```
@@ -41,31 +47,39 @@ Endpoints that must not carry a token (login, refresh):
 ## Errors
 
 `ApiException` is **sealed**, so a `switch` over it is exhaustive and a new subtype breaks the
-compile instead of silently falling into a default branch:
+compile instead of silently falling into a default branch. Subtypes follow gokit's stable `code`,
+not the HTTP status — the full mapping table is in [api-contract.md](api-contract.md#errors--rfc-9457-problem-details).
 
-| Subtype | Raised on |
-|---|---|
-| `UnauthorizedException` | `401`, after refresh failed or was absent |
-| `NotFoundException` | `404` |
-| `ServerException` | other `4xx`/`5xx` (carries `statusCode`, parsed `message`) |
-| `TimeoutException` | connect/send/receive timeout |
-| `NetworkException` | connection error, `SocketException` |
-| `UnknownApiException` | cancelled, or anything unmapped |
+`NotFoundException` · `UnauthorizedException` · `ForbiddenException` · `ValidationException` ·
+`ConflictException` · `RateLimitedException` · `TimeoutException` · `NetworkException` ·
+`ServerException` · `UnknownApiException`
 
-User-facing copy: `ref.read(apiErrorMessagesProvider).message(e)` — override the provider to
-localize. Don't write error strings in widgets.
+Each carries `code`, `statusCode`, `title`, `message` (the server's `detail`) and `traceId`.
+
+- **User-facing copy**: `ref.read(apiErrorMessagesProvider).message(e)` — override the provider to
+  localize. Never show `detail` or `traceId` to a user; never write error strings in a widget.
+- **Forms**: `ValidationException.reasonFor('email')` binds the server's field errors to inputs.
+- **Support/debugging**: log `traceId` — `ErrorInterceptor` already does, and it is what backend
+  searches on.
 
 ## Pagination
 
-Mix `PaginatedNotifier<T>` into a notifier, implement `fetchPage(page)` returning
-`PaginatedResponse<T>`, then render with `PaginatedListView<T>`:
+gokit paginates by opaque cursor. Mix `PaginatedNotifier<T>` into a notifier, implement
+`fetchPage(String? cursor)` returning `ApiPage<T>`, then render with `PaginatedListView<T>`:
 
 ```dart
 @riverpod
 class ArticleList extends _$ArticleList with PaginatedNotifier<Article> {
   @override
-  Future<PaginatedResponse<Article>> fetchPage(int page) =>
-      ref.read(articleRepositoryProvider).getArticles(page: page, limit: pageSize);
+  Future<ApiPage<Article>> fetchPage(String? cursor) async {
+    final result = await ref
+        .read(articleRepositoryProvider)
+        .fetchPage(cursor: cursor, limit: pageSize);
+    return switch (result) {
+      Success(:final data) => data,
+      Failure(:final exception) => throw exception, // lands in state.error
+    };
+  }
 
   @override
   PaginatedState<Article> build() {
@@ -75,4 +89,6 @@ class ArticleList extends _$ArticleList with PaginatedNotifier<Article> {
 }
 ```
 
-The widget handles the scroll threshold, load-more spinner, pull-to-refresh and empty state.
+The mixin owns the in-flight guard, the cursor and error capture; the widget owns the scroll
+threshold, load-more spinner, pull-to-refresh and empty state. Trust `hasMore` from the server — a
+short page is not the end of the list.

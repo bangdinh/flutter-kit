@@ -24,10 +24,17 @@ class __Feature__RepositoryImpl implements __Feature__Repository {
   /// `apiCall` turns any `DioException`/`ApiException` into
   /// `Result.failure(ApiException)`, so nothing above this layer sees Dio.
   @override
-  Future<Result<List<__Feature__>>> fetchAll() {
+  Future<Result<ApiPage<__Feature__>>> fetchPage({
+    String? cursor,
+    int limit = 20,
+  }) {
     return apiCall(() async {
-      final models = await remoteDataSource.fetchAll();
-      return models.map((model) => model.toEntity()).toList();
+      final page = await remoteDataSource.fetchPage(cursor: cursor, limit: limit);
+      // DTOs stop here: the page keeps its meta, the items become entities.
+      return ApiPage(
+        items: page.items.map((model) => model.toEntity()).toList(),
+        page: page.page,
+      );
     });
   }
 

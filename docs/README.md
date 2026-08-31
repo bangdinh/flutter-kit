@@ -5,6 +5,7 @@
 | [getting-started.md](getting-started.md) | Standing up a new app on the kit |
 | [architecture.md](architecture.md) | Deciding where code belongs, layer rules |
 | [extension-points.md](extension-points.md) | The kit doesn't do what your app needs |
+| [api-contract.md](api-contract.md) | The gokit wire contract: data envelope, cursors, problem details |
 | [network.md](network.md) | Calling APIs, errors, auth tokens, pagination |
 | [state.md](state.md) | Riverpod providers, bootstrap, lifecycle |
 | [theme.md](theme.md) | Rebranding, spacing, shared widgets |
